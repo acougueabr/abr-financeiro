@@ -42,11 +42,16 @@
 .reportGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.reportCard{padding:12px;border-radius:10px;background:#22272f}.reportCard small{display:block;color:#b5bdc7;margin-bottom:8px}.reportCard strong{font-size:20px}.reportCard .sub{font-size:12px;color:#bac2ce;margin-top:7px}
 .detailsWrap{border:1px solid #414b58;border-radius:10px;margin:8px 0;background:#21262e;overflow:hidden}.detailsWrap summary{padding:12px;cursor:pointer;font-weight:bold}.detailsWrap .content{padding:0 12px 12px}.privateDelete{background:#40262c!important;border:1px solid #a34b55!important;color:#ffc2c5!important}.historyFilters{display:grid;grid-template-columns:1fr 1fr auto;align-items:end;gap:9px}.historyFilters label{margin-top:0}
 @media(max-width:650px){.reportGrid{grid-template-columns:1fr 1fr}.historyFilters{grid-template-columns:1fr 1fr}.historyFilters button{grid-column:1/-1}.quicknav a{flex:1 1 45%;justify-content:center}}
+
+/* V4.0: sincronização usando mesmo tema, sem interferir nos cartões do painel */
+.cloudPanel{border-color:#445e55}.cloudSelo{padding:5px 9px;border:1px solid #7b8692;border-radius:8px;font-size:11px;font-weight:800;letter-spacing:.5px}.cloudSelo.active{border-color:#59cb98;color:#63dca5}.cloudChoices{display:grid;grid-template-columns:1fr;gap:9px;margin:12px 0}.cloudChoices button{text-align:left}.cloudStatus{background:#203328;border:1px solid #3e7257;border-radius:11px;padding:12px;font-weight:bold;line-height:1.4}.cloudPanel .notice{margin-top:12px}.cloudAccess input{max-width:100%}
 </style>
 </head>
 <body><main>
-<header class="top"><div class="brand">AÇOUGUE<br><b>ABR</b></div><div style="border-left:1px solid #59606a;padding-left:16px"><h1>FECHAMENTO GERAL</h1><p class="muted" id="periodo">14 A 18 DE NOVEMBRO DE 2026</p><span class="version">ABR FINANCEIRO • V3.1</span></div></header>
-<nav class="quicknav"><a href="#resumoDiario">📊 Caixa por dia</a><a href="#historicoVendas">🧾 Histórico / apagar</a><a href="#movimentacao">➕ Nova movimentação</a><a href="#backupAbr">💾 Backup</a></nav>
+<header class="top"><div class="brand">AÇOUGUE<br><b>ABR</b></div><div style="border-left:1px solid #59606a;padding-left:16px"><h1>FECHAMENTO GERAL</h1><p class="muted" id="periodo">14 A 18 DE NOVEMBRO DE 2026</p><span class="version">ABR FINANCEIRO • V4.0</span></div></header>
+<nav class="quicknav"><a href="#resumoDiario">📊 Caixa por dia</a><a href="#historicoVendas">🧾 Histórico / apagar</a><a href="#movimentacao">➕ Nova movimentação</a><a href="#sincronizacao">☁️ Sincronização</a><a href="#backupAbr">💾 Backup</a></nav>
+
+
 <div class="cards"><div class="card"><small>FATURAMENTO</small><div class="value" id="faturamento"></div><small class="muted">Vendas no período</small></div><div class="card green"><small>CAIXA DISPONÍVEL</small><div class="value greenText" id="caixa"></div><small class="muted">Dinheiro para usar agora</small></div><div class="card"><small>A PAGAR</small><div class="value red" id="pagar"></div><small class="muted">Obrigações pendentes</small></div></div>
 <div class="banner"><span class="orange">SITUAÇÃO PARA NOVAS COMPRAS</span><div id="situacao" style="margin-top:7px"></div></div>
 <section class="panel"><div class="sectionHead"><h2>VENDAS POR DIA</h2><span class="muted" id="totalVendas"></span></div><div class="tiles" id="dias"></div><div class="row" style="margin-top:12px"><div><label for="diaFechamento">Situação do dia</label><input type="date" id="diaFechamento"></div><div><label>&nbsp;</label><button class="secondary" id="alternarParcial" type="button">Marcar como parcial / fechado</button></div></div><p class="hint" id="estadoDia"></p></section>
@@ -68,5 +73,33 @@
 </form></section>
 <section class="panel" id="historicoVendas"><div class="sectionHead"><h2>HISTÓRICO DE MOVIMENTAÇÕES</h2><button class="secondary" id="filtroBtn" type="button">Todos / recentes</button></div><div class="historyFilters"><div><label for="filtroHistoricoData">Filtrar data</label><input id="filtroHistoricoData" type="date"></div><div><label for="filtroHistoricoTipo">Tipo</label><select id="filtroHistoricoTipo"><option value="">Todos</option><option value="venda">Vendas</option><option value="compra">Compras</option><option value="despesa">Despesas</option><option value="recebimento">Recebimentos</option><option value="pagamento">Pagamentos</option><option value="emprestimo">Empréstimos</option><option value="ajuste">Ajustes de caixa</option><option value="estoque">Estoque</option></select></div><button type="button" id="limparHistoricoFiltro" class="secondary smallBtn">Limpar filtros</button></div><p class="hint">Abra o histórico e toque em <b>Excluir lançamento</b> abaixo da venda errada. A exclusão recalcula automaticamente os totais, mas os registros iniciais consolidados são protegidos.</p><div id="historico"></div></section>
 <section class="panel"><h2>HISTÓRICO DA PLANILHA • CONFERÊNCIA PRIVADA</h2><p class="hint">Importe o arquivo JSON privado apenas no seu iPhone. Toque em um dia para abrir as vendas individuais. A exclusão de uma linha da planilha é apenas da consulta privada: não altera o fechamento financeiro consolidado.</p><button class="secondary" id="importarPlanilha" type="button">Importar histórico privado (JSON)</button><input id="arquivoPlanilha" type="file" accept=".json,application/json" class="hidden"><div id="historicoPlanilha"></div></section>
-<section class="panel" id="backupAbr"><h2>BACKUP E SEGURANÇA</h2><div class="actions"><button id="exportar" type="button">Exportar backup JSON</button><button class="secondary" id="importar" type="button">Restaurar backup</button><button class="secondary" id="csv" type="button">Exportar CSV</button><input id="arquivo" type="file" accept=".json,application/json" class="hidden"></div><p class="hint">Os dados são salvos somente neste navegador e neste aparelho. Faça backup antes de atualizar, limpar dados, trocar de celular ou restaurar o aparelho. Repositório GitHub público NÃO recebe os lançamentos feitos no app. Sem sincronização automática. A versão 3.1 lê os registros das versões anteriores e mantém a mesma chave de armazenamento.</p><p id="armazenamentoAviso" class="notice hidden"></p></section>
-</main><script src="app.js" defer></script></body></html>
+<section class="panel cloudPanel" id="sincronizacao">
+  <div class="sectionHead"><h2>☁️ SINCRONIZAÇÃO ENTRE APARELHOS</h2><span id="nuvemSelo" class="cloudSelo">LOCAL</span></div>
+  <p class="hint">Notebook e iPhone com a mesma conta podem compartilhar vendas, compras, exclusões, caixa e histórico. Lançamentos também ficam neste aparelho e são enviados quando houver conexão.</p>
+  <div class="notice" id="nuvemAviso">Configuração da nuvem ainda não concluída. Os dados atuais continuam locais.</div>
+  <div id="nuvemAcesso" class="cloudAccess hidden">
+    <div class="formgrid">
+      <div><label for="nuvemEmail">Seu e-mail</label><input type="email" autocomplete="email" id="nuvemEmail" placeholder="voce@exemplo.com"></div>
+      <div><label for="nuvemSenha">Senha (mínimo de 8 caracteres)</label><input type="password" autocomplete="current-password" id="nuvemSenha" placeholder="Sua senha"></div>
+    </div>
+    <div class="actions" style="margin-top:12px"><button id="nuvemEntrar" type="button">Entrar</button><button id="nuvemCriar" type="button" class="secondary">Criar conta</button></div>
+    <p class="hint">Use o MESMO e-mail e senha no notebook e no iPhone. Nunca compartilhe sua senha.</p>
+  </div>
+  <div id="nuvemEscolha" class="hidden">
+    <h3>Escolha como começar neste aparelho</h3>
+    <p class="hint" id="nuvemContagem"></p>
+    <div class="cloudChoices">
+      <button type="button" id="nuvemEnviar">1. Enviar os dados DESTE aparelho para a nuvem</button>
+      <button type="button" id="nuvemBaixar" class="secondary">2. Carregar os dados da nuvem neste aparelho</button>
+      <button type="button" id="nuvemMesclar" class="secondary">3. Mesclar vendas locais que faltam na nuvem</button>
+    </div>
+    <p class="hint">No notebook onde já registrou as vendas, use a opção 1 somente se a nuvem estiver vazia. Depois, no iPhone, escolha a opção 2. A opção 3 serve para registros extras feitos no aparelho, sem duplicar IDs já existentes. Faça backups antes.</p>
+  </div>
+  <div id="nuvemAtiva" class="hidden">
+    <div class="cloudStatus" id="nuvemStatus" role="status" aria-live="polite">Verificando sincronização...</div>
+    <div class="actions" style="margin-top:12px"><button id="nuvemAgora" type="button">Sincronizar agora</button><button id="nuvemSair" class="secondary" type="button">Sair da conta</button></div>
+    <p class="hint">O aplicativo verifica atualizações automaticamente enquanto estiver aberto. Se ficar offline, os lançamentos são guardados localmente para envio posterior. Exporte backups periódicos.</p>
+  </div>
+</section>
+<section class="panel" id="backupAbr"><h2>BACKUP E SEGURANÇA</h2><div class="actions"><button id="exportar" type="button">Exportar backup JSON</button><button class="secondary" id="importar" type="button">Restaurar backup</button><button class="secondary" id="csv" type="button">Exportar CSV</button><input id="arquivo" type="file" accept=".json,application/json" class="hidden"></div><p class="hint">Os dados continuam salvos neste aparelho, mesmo quando a sincronização está ativada. Faça backup regularmente, especialmente antes de importar ou restaurar. Com a nuvem ativada, o backup também pode conter registros vindos de outros aparelhos. Não envie backups privados ao GitHub.</p><p id="armazenamentoAviso" class="notice hidden"></p></section>
+</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script><script src="config.js" defer></script><script src="app.js" defer></script><script src="cloud.js" defer></script></body></html>

@@ -49,7 +49,7 @@ const supplierCategory=r=>{
 const supplierTitle=p=>({'Carne bovina':'FORNECEDOR DA CARNE','Frango':'FORNECEDOR DO FRANGO','Porco':'FORNECEDOR DO PORCO'})[p]||p;
 let state, recentes=false, itemSequence=0;
 function safeStorageGet(key){try{return localStorage.getItem(key)}catch{return null}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(state));return true}catch(e){el('armazenamentoAviso').textContent='Falha ao salvar os dados no aparelho. Libere espaço e faça um backup. '+e.message;el('armazenamentoAviso').classList.remove('hidden');return false}}
+function save(){try{const antes=safeStorageGet(KEY);localStorage.setItem(KEY,JSON.stringify(state));if(window.ABRCloud&&typeof window.ABRCloud.localSaved==='function')window.ABRCloud.localSaved(antes,state);return true}catch(e){el('armazenamentoAviso').textContent='Falha ao salvar os dados no aparelho. Libere espaço e faça um backup. '+e.message;el('armazenamentoAviso').classList.remove('hidden');return false}}
 function initialize(){
   const raw=safeStorageGet(KEY);
   try{if(raw){const parsed=JSON.parse(raw);if(parsed&&Array.isArray(parsed.registros)&&parsed.saldos&&typeof parsed.saldos==='object')state=parsed}}catch{}
@@ -445,4 +445,4 @@ function bind(){
   toggleFormType();updateSalePreview();updatePurchasePreview();
 }
 initialize();bind();render();
-if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=30').catch(()=>{});
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=40').catch(()=>{});
