@@ -1,12 +1,12 @@
-ABR FINANCEIRO — VERSÃO 2.0
+ABR FINANCEIRO — VERSÃO 2.1
 
-ANTES DE ATUALIZAR: no aplicativo atual (v1), clique em "Exportar backup JSON" e salve o arquivo fora do iPhone. Se tiver registros em Safari e no ícone da tela inicial, exporte backup de cada ambiente: no iOS os dados podem ser separados.
+ANTES DE ATUALIZAR: no aplicativo atual (v1 ou v2), clique em "Exportar backup JSON" e salve o arquivo fora do iPhone. Se tiver registros em Safari e no ícone da tela inicial, exporte backup de cada ambiente: no iOS os dados podem ser separados.
 
 ATUALIZAÇÃO NO GITHUB
 1. Abra https://github.com/acougueabr/abr-financeiro
 2. Em "Add file" > "Upload files", envie os arquivos DE DENTRO desta pasta para a raiz do repositório. Confirme as alterações. O arquivo index.html deve ficar na raiz, ao lado de app.js.
-3. Aguarde a publicação do GitHub Pages. Abra https://acougueabr.github.io/abr-financeiro/ e atualize/reabra o app até aparecer "V2.0" no cabeçalho.
-4. NÃO APAGUE o aplicativo instalado nem limpe os dados do Safari para atualizar. Basta atualizar os arquivos do site. A chave localStorage "abr-financeiro-v1" é preservada na v2.
+3. Aguarde a publicação do GitHub Pages. Abra https://acougueabr.github.io/abr-financeiro/ e atualize/reabra o app até aparecer "V2.1" no cabeçalho.
+4. NÃO APAGUE o aplicativo instalado nem limpe os dados do Safari para atualizar. Basta atualizar os arquivos do site. A chave localStorage "abr-financeiro-v1" é preservada na v2.1.
 
 O QUE HÁ DE NOVO
 - Compras por mercadoria: Carne bovina, Porco, Frango, Toscana, Calabresa e Outro. Quantidade, custo unitário, desconto, preço de venda de referência e estimativa de margem bruta.
@@ -24,3 +24,20 @@ ATENÇÃO AOS CÁLCULOS
 - Sem sincronização entre aparelhos ou entre contextos de armazenamento do Safari/PWA. Faça backups regulares.
 
 PARA TESTAR LOCALMENTE (PC): python -m http.server 8000
+
+NOVIDADE v2.1 — FORNECEDORES EM 3 QUADROS
+- Fornecedor da carne, do frango, do porco: cada um tem nome configurável, compras por data, quantidade, custo/kg, custo total, pago/pendente/parcial, e cenário comparando o restante com o caixa total disponível.
+- Use '+ Registrar compra de ...' no quadro correspondente para abrir o cadastro com a mercadoria escolhida.
+- Use 'Registrar pagamento' na linha pendente para abrir o formulário de pagamento já vinculado à compra. O valor sugerido é o saldo em aberto; pode ser reduzido para pagar parte. Escolha a conta de onde o dinheiro saiu. O lançamento de pagamento NÃO duplica o custo.
+- A dívida de cada fornecedor é apenas sua parte das contas a pagar; as três comparações de caixa usam o MESMO caixa, portanto NÃO some os saldos após pagamento entre si.
+- Bovino já pago: 159kg da 1ª e 2ª banda são mostrados visualmente como 77 kg em 14/11 e 82 kg em 15/11. Custo bruto: R$ 4.372,50, descontos conjuntos: R$ 351,00, pago: R$ 4.021,50. Esta divisão NÃO cria novos lançamentos nem altera o total financeiro, e não distribui os descontos por dia sem informações.
+- A 3ª banda permanece em 18/11, 90 kg, R$ 2.475,00 pendentes; não há novo lançamento em 17/11 sem informar o peso e valor.
+- Os registros do fechamento inicial sem detalhamento de estoque permanecem fora do cálculo de estoque, para evitar inferir estoque que não existe.
+- A importação do backup aceita v1, v2 ou v2.1. Os nomes dos fornecedores ficam locais e no backup.
+
+
+VERSÃO 3.0: exclusão de lançamentos novos com confirmação, bloqueio para registros com baixas vinculadas e proteção dos consolidados iniciais. Importação opcional do histórico privado de 102 vendas para conferência, SEM duplicar faturamento nem caixa.
+
+NÃO ENVIE ABR-Historico-Privado-102-Vendas.json AO GITHUB: contém informações de clientes. Baixe esse arquivo diretamente no iPhone e importe somente no aplicativo instalado.
+
+ANTES DE ATUALIZAR: faça backup JSON no aparelho. Depois envie os arquivos da pasta abr-financeiro ao mesmo repositório acougueabr/abr-financeiro, substituindo os antigos. Não apague os dados do Safari nem desinstale a PWA.
