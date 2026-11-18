@@ -102,7 +102,7 @@ function render(){
   const dates=[...new Set([...vendas.map(r=>r.data),'2026-11-16'])].sort();
   const latest=dates.at(-1)||'2026-11-18';
   el('periodo').textContent=`14/11/2026 A ${niceDate(latest)}`;
-  el('dias').innerHTML=dates.map(d=>{const v=sum(vendas.filter(r=>r.data===d).map(n));const dt=new Date(d+'T12:00:00');const label=dt.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}).toUpperCase();return `<div class="tile"><small>${label}</small><strong>${money(v)}</strong>${state.parcial.includes(d)?'<small class="orange">Parcial</small>':''}</div>`}).join('');
+  el('dias').innerHTML=dates.map(d=>{const v=sum(vendas.filter(r=>r.data===d).map(n));const dt=new Date(d+'T12:00:00');const label=dt.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}).toUpperCase();return `<div class="tile"><small>${label}</small><strong>${money(v)}</strong><button type="button" class="secondary smallBtn" style="margin-top:10px;width:100%" data-view-day="${d}">Ver recebimentos</button>${state.parcial.includes(d)?'<small class="orange">Parcial</small>':''}</div>`}).join('');
   const line=r=>`<div class="entry"><span class="scrollText">${esc(r.descricao)}${r.status==='pendente'?`<br><small class="muted">Restante: ${money(restante(r))}</small>`:''}</span><b>${money(r.status==='pendente'?restante(r):n(r))}</b></div>`;
   el('listaPagos').innerHTML=regs.filter(r=>['compra','despesa'].includes(r.tipo)&&(r.status==='quitado'||paid(r.id)>0)).map(r=>r.status==='quitado'?line(r):`<div class="entry"><span>${esc(r.descricao)} (parcial)</span><b>${money(paid(r.id))}</b></div>`).join('')||'<small class="muted">Nenhum</small>';
   el('listaPendentes').innerHTML=debts.map(line).join('')||'<small class="muted">Nenhum</small>';
@@ -132,11 +132,14 @@ function render(){
   el('recebidoLiquidoDetalhado').textContent=money(sum([...byMethod.values()])-trocosDetalhados-taxasDetalhadas);
   el('trocosDetalhados').textContent='Trocos devolvidos: '+money(trocosDetalhados)+' • Taxas informadas: '+money(taxasDetalhadas)+'.';
 
+  renderDailyMethods();
   renderSuppliers(saldos);
   el('estoque').innerHTML=PRODUCTS.map(p=>{const a=[...stock.entries()].filter(([k])=>k.startsWith(p+'|'));return `<div class="stocktile"><small>${esc(p)}</small><strong>${a.length?a.map(([k,v])=>fmtQty(v,k.split('|')[1])).join(' + '):'Sem quantidade inicial'}</strong><small>Movimentações detalhadas</small></div>`}).join('');
   const history=[...regs].sort((a,b)=>b.data.localeCompare(a.data)||(b.criadoEm||'').localeCompare(a.criadoEm||''));
-  el('historico').innerHTML=(recentes?history.slice(0,12):history).map(r=>{const extra=r.tipo==='venda'&&Array.isArray(r.itens)?`<br><small>${r.itens.map(i=>`${esc(i.produto)} ${fmtQty(i.quantidade,i.unidade)}`).join(' • ')}${r.troco?.valor?` • Troco: ${money(r.troco.valor)} (${esc(r.troco.conta)})`:''}</small>`:r.tipo==='compra'&&r.precoVendaRef?`<br><small>Venda referência: ${money(r.precoVendaRef)}/${esc(r.unidade||'kg')}</small>`:'';
-    return `<div class="record"><div class="line"><strong class="scrollText">${esc(r.descricao)}</strong><strong>${r.tipo==='estoque'?fmtQty(r.quantidade,r.unidade):money(n(r))}</strong></div><small>${niceDate(r.data)} • ${esc(r.tipo)} • ${esc(r.status||'')} ${r.legacy?'• Saldo inicial':''} ${r.vinculo?'• vinculado':''}</small>${extra}${r.legacy?'<small class="muted"> • Inicial protegido</small>':`<div class="recordActions"><button type="button" class="secondary smallBtn deleteRecord" data-delete="${esc(r.id)}">Excluir lançamento</button></div>`}</div>`}).join('');
+  const dateFilter=el('filtroHistoricoData').value,typeFilter=el('filtroHistoricoTipo').value;
+  const filteredHistory=history.filter(r=>(!dateFilter||r.data===dateFilter)&&(!typeFilter||r.tipo===typeFilter));
+  el('historico').innerHTML=(recentes?filteredHistory.slice(0,12):filteredHistory).map(r=>{const extra=r.tipo==='venda'&&Array.isArray(r.itens)?`<br><small>${r.itens.map(i=>`${esc(i.produto)} ${fmtQty(i.quantidade,i.unidade)}`).join(' • ')}${r.troco?.valor?` • Troco: ${money(r.troco.valor)} (${esc(r.troco.conta)})`:''}</small>`:r.tipo==='compra'&&r.precoVendaRef?`<br><small>Venda referência: ${money(r.precoVendaRef)}/${esc(r.unidade||'kg')}</small>`:'';
+    return `<div class="record"><div class="line"><strong class="scrollText">${esc(r.descricao)}</strong><strong>${r.tipo==='estoque'?fmtQty(r.quantidade,r.unidade):money(n(r))}</strong></div><small>${niceDate(r.data)} • ${esc(r.tipo)} • ${esc(r.status||'')} ${r.legacy?'• Saldo inicial':''} ${r.vinculo?'• vinculado':''}</small>${extra}${r.legacy?'<small class="muted"> • Inicial protegido</small>':`<div class="recordActions"><button type="button" class="secondary smallBtn deleteRecord" data-delete="${esc(r.id)}">Excluir lançamento</button></div>`}</div>`}).join('')||'<p class="hint">Nenhuma movimentação encontrada nesse filtro.</p>';
   refreshLinks();updateDayStatus();renderSpreadsheetHistory();
 }
 function supplierStatus(r){
@@ -328,14 +331,43 @@ function removeTransaction(id){
   if(!save()){state.registros=old;return}
   render();alert('Movimentação excluída e indicadores recalculados.');
 }
+function renderDailyMethods(){
+  const date=el('dataRelatorio').value||today();
+  const categories=['Dinheiro','Pix','Débito','Crédito à vista','Crédito parcelado'];
+  const by={};for(const m of categories)by[m]={bruto:0,troco:0,taxa:0};
+  const put=(name,key,value)=>{if(!by[name])by[name]={bruto:0,troco:0,taxa:0};by[name][key]=round2(by[name][key]+(Number(value)||0))};
+  let totalVendas=0,count=0,semDetalhe=0;
+  for(const r of state.registros.filter(r=>r.tipo==='venda'&&r.data===date&&!r.semFaturamento)){
+    totalVendas=round2(totalVendas+Number(r.valor||0));count++;
+    if(!Array.isArray(r.recebimentos)){semDetalhe=round2(semDetalhe+Number(r.valor||0));continue}
+    for(const p of r.recebimentos){put(p.metodo||'Não informado','bruto',p.valor);put(p.metodo||'Não informado','taxa',p.taxa)}
+    if(r.troco?.valor){const target=r.troco.conta==='Espécie'?'Dinheiro':'Pix';put(target,'troco',r.troco.valor)}
+  }
+  const rows=Object.entries(by).map(([name,v])=>`<div class="reportCard"><small>${esc(name)}</small><strong class="greenText">${money(round2(v.bruto-v.troco-v.taxa))}</strong><div class="sub">Bruto ${money(v.bruto)} • Troco ${money(v.troco)} • Taxa ${money(v.taxa)}</div></div>`).join('');
+  let privateHtml='';const imported=(state.historicoPlanilha||[]).filter(r=>r.data===date);
+  if(imported.length){
+    const fields=[['notas','Dinheiro recebido'],['pix','Pix recebido'],['debito','Débito'],['credito','Crédito'],['cartaoAnterior','Cartão anterior'],['trocoDinheiro','Troco dinheiro'],['trocoPix','Troco Pix'],['fiado','Fiado informado']];
+    privateHtml=`<details class="detailsWrap"><summary>Ver recebimentos da planilha (${imported.length} vendas) — conferência</summary><div class="content"><p class="hint">Estes valores vieram das colunas históricas da planilha. Não são somados novamente ao caixa; campos não preenchidos ou classificações antigas podem divergir do painel.</p><div class="reportGrid">${fields.map(([key,title])=>`<div class="reportCard"><small>${title}</small><strong>${money(sum(imported.map(r=>r[key])))}</strong></div>`).join('')}</div></div></details>`;
+  }
+  el('resumoPagamentoDia').innerHTML=`<div class="summaryline"><b>${niceDate(date)} • ${count} lançamento(s)</b><b>Faturamento ${money(totalVendas)}</b></div>${semDetalhe?`<div class="notice">${money(semDetalhe)} desse dia pertence a vendas consolidadas sem método discriminado. Não é possível atribuir esses valores a Pix, dinheiro ou cartões sem conferência.</div>`:''}<div class="reportGrid">${rows}</div>${privateHtml}`;
+}
 function renderSpreadsheetHistory(){
   const box=el('historicoPlanilha');if(!box)return;
   const rows=Array.isArray(state.historicoPlanilha)?state.historicoPlanilha:[];
-  if(!rows.length){box.innerHTML='<p class="hint">Importe o arquivo privado de histórico gerado a partir da planilha. O histórico fica apenas neste aparelho e não é somado novamente ao faturamento.</p>';return}
+  if(!rows.length){box.innerHTML='<p class="hint">Nenhuma venda privada importada. Use o botão acima para importar as linhas da planilha e abri-las individualmente.</p>';return}
   const byDay={};for(const r of rows){const day=r.data;byDay[day]??={q:0,total:0};byDay[day].q++;byDay[day].total=round2(byDay[day].total+Number(r.valor||0))}
-  const daily=Object.entries(byDay).sort().map(([date,x])=>`<div class="entry"><span>${niceDate(date)} • ${x.q} vendas</span><b>${money(x.total)}</b></div>`).join('');
-  const compare=state.registros.filter(r=>r.legacy&&r.tipo==='venda'&&!r.semFaturamento).map(r=>{const total=byDay[r.data]?.total;return total!=null&&Math.abs(total-r.valor)>0.001?`<div class="notice">Diferença em ${niceDate(r.data)}: histórico ${money(total)} × painel ${money(r.valor)}. Não foi ajustada automaticamente.</div>`:''}).join('');
-  box.innerHTML=`<div class="summaryline"><b>Vendas da planilha (somente conferência)</b><b>${rows.length}</b></div>${daily}${compare}<p class="hint">As vendas históricas já compõem os totais consolidados e NÃO foram lançadas outra vez. Dados privados, armazenados somente neste aparelho. Excluir uma venda NOVA não apaga linhas do histórico de conferência.</p>`;
+  const daily=Object.entries(byDay).sort().reverse().map(([date,x])=>{
+    const entries=rows.map((r,i)=>({r,i})).filter(o=>o.r.data===date);
+    return `<details class="detailsWrap"><summary>${niceDate(date)} • ${x.q} vendas • ${money(x.total)} ▾</summary><div class="content">${entries.map(({r,i})=>`<div class="record"><div class="line"><strong>${esc(r.produto||'Venda')} #${esc(r.numero||i+1)}</strong><strong>${money(r.valor)}</strong></div><small>Cliente: ${esc(r.cliente||'não informado')} • ${esc(r.observacoes||'')}</small><div class="recordActions"><button type="button" class="secondary smallBtn privateDelete" data-private-delete="${i}">Excluir desta conferência</button></div></div>`).join('')}</div></details>`
+  }).join('');
+  const compare=state.registros.filter(r=>r.legacy&&r.tipo==='venda'&&!r.semFaturamento).map(r=>{const total=byDay[r.data]?.total;return total!=null&&Math.abs(total-r.valor)>0.001?`<div class="notice">Diferença em ${niceDate(r.data)}: histórico consultável ${money(total)} × painel consolidado ${money(r.valor)}. Nenhum valor foi ajustado automaticamente.</div>`:''}).join('');
+  box.innerHTML=`<div class="summaryline"><b>Vendas da planilha (consulta privada)</b><b>${rows.length}</b></div>${daily}${compare}<p class="hint">Excluir aqui remove somente a linha da consulta privada, não mexe no caixa, faturamento ou nos registros consolidados iniciais.</p>`;
+}
+function removePrivateHistory(index){
+  const rows=state.historicoPlanilha;if(!Array.isArray(rows)||!rows[index])return;
+  const r=rows[index];if(!confirm(`Excluir do histórico privado a venda ${r.numero||index+1} de ${niceDate(r.data)}, no valor de ${money(r.valor)}?\n\nIsso NÃO altera o faturamento ou o caixa consolidado.`))return;
+  const old=[...rows];state.historicoPlanilha=rows.filter((_,i)=>i!==index);
+  if(!save()){state.historicoPlanilha=old;return}render();
 }
 async function importSpreadsheetHistory(e){
  const file=e.target.files?.[0];if(!file)return;
@@ -368,7 +400,8 @@ async function importJSON(e){
   }catch(err){alert('Backup inválido: '+err.message)}finally{e.target.value=''}
 }
 function bind(){
-  el('data').value=today();el('diaFechamento').value='2026-11-18';
+  el('data').value=today();el('diaFechamento').value='2026-11-18';el('dataRelatorio').value=today();el('dataRelatorio').onchange=renderDailyMethods;
+  el('dias').addEventListener('click',e=>{const b=e.target.closest('[data-view-day]');if(!b)return;el('dataRelatorio').value=b.dataset.viewDay;renderDailyMethods();el('resumoDiario').scrollIntoView({behavior:'smooth',block:'start'})});
   el('produtoCompra').innerHTML=productOptions();el('produtoEstoque').innerHTML=productOptions();
   el('produtoCompra').addEventListener('change',()=>{el('fornecedorCompra').value=state.fornecedores[el('produtoCompra').value]||''});
   el('painelFornecedores').addEventListener('click',e=>{
@@ -381,6 +414,8 @@ function bind(){
   el('toggle').onclick=()=>el('form').classList.toggle('hidden');
   el('tipo').onchange=toggleFormType;
   el('filtroBtn').onclick=()=>{recentes=!recentes;render()};
+  el('filtroHistoricoData').onchange=render;el('filtroHistoricoTipo').onchange=render;el('limparHistoricoFiltro').onclick=()=>{el('filtroHistoricoData').value='';el('filtroHistoricoTipo').value='';recentes=false;render()};
+  el('historicoPlanilha').addEventListener('click',e=>{const b=e.target.closest('[data-private-delete]');if(b)removePrivateHistory(Number(b.dataset.privateDelete))});
   el('historico').addEventListener('click',e=>{const b=e.target.closest('[data-delete]');if(b)removeTransaction(b.dataset.delete)});
   el('importarPlanilha').onclick=()=>el('arquivoPlanilha').click();el('arquivoPlanilha').onchange=importSpreadsheetHistory;
   el('alternarParcial').onclick=()=>{const d=el('diaFechamento').value;if(!d)return;state.parcial=state.parcial.includes(d)?state.parcial.filter(x=>x!==d):[...state.parcial,d];save();render()};

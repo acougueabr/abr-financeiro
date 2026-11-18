@@ -41,3 +41,5 @@ VERSÃO 3.0: exclusão de lançamentos novos com confirmação, bloqueio para re
 NÃO ENVIE ABR-Historico-Privado-102-Vendas.json AO GITHUB: contém informações de clientes. Baixe esse arquivo diretamente no iPhone e importe somente no aplicativo instalado.
 
 ANTES DE ATUALIZAR: faça backup JSON no aparelho. Depois envie os arquivos da pasta abr-financeiro ao mesmo repositório acougueabr/abr-financeiro, substituindo os antigos. Não apague os dados do Safari nem desinstale a PWA.
+
+VERSÃO 3.1: painel por dia e método, atalhos, filtros de histórico, exclusão visível de venda e exclusão somente da consulta privada (não altera consolidados).
