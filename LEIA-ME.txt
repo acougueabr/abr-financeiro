@@ -1,0 +1,11 @@
+ABR FINANCEIRO - VERSÃO 1
+
+1. Publique todos os arquivos desta pasta em um repositório GitHub Pages (Settings > Pages > Deploy from a branch > main / root).
+2. Abra o endereço HTTPS do GitHub Pages no celular.
+3. Android/Chrome: menu de três pontos > Adicionar à tela inicial / Instalar aplicativo.
+   iPhone/Safari: Compartilhar > Adicionar à Tela de Início.
+4. Faça backup JSON regularmente, especialmente antes de limpar o navegador, trocar de celular ou restaurar dados.
+
+IMPORTANTE: Os saldos de 18/11 são um retrato inicial. Os totais de vendas por dia foram importados como consolidados, sem discriminação individual, e NÃO são somados novamente ao caixa inicial. Não cadastre as mesmas vendas antigas novamente sem ajustar a base. Novas vendas afetam faturamento e caixa conforme forma de pagamento. Estoque detalhado e edição/exclusão auditável serão desenvolvidos em etapa posterior.
+
+Para testar localmente em computador: python -m http.server 8000 e acesse http://localhost:8000.
