@@ -1,11 +1,26 @@
-ABR FINANCEIRO - VERSÃO 1
+ABR FINANCEIRO — VERSÃO 2.0
 
-1. Publique todos os arquivos desta pasta em um repositório GitHub Pages (Settings > Pages > Deploy from a branch > main / root).
-2. Abra o endereço HTTPS do GitHub Pages no celular.
-3. Android/Chrome: menu de três pontos > Adicionar à tela inicial / Instalar aplicativo.
-   iPhone/Safari: Compartilhar > Adicionar à Tela de Início.
-4. Faça backup JSON regularmente, especialmente antes de limpar o navegador, trocar de celular ou restaurar dados.
+ANTES DE ATUALIZAR: no aplicativo atual (v1), clique em "Exportar backup JSON" e salve o arquivo fora do iPhone. Se tiver registros em Safari e no ícone da tela inicial, exporte backup de cada ambiente: no iOS os dados podem ser separados.
 
-IMPORTANTE: Os saldos de 18/11 são um retrato inicial. Os totais de vendas por dia foram importados como consolidados, sem discriminação individual, e NÃO são somados novamente ao caixa inicial. Não cadastre as mesmas vendas antigas novamente sem ajustar a base. Novas vendas afetam faturamento e caixa conforme forma de pagamento. Estoque detalhado e edição/exclusão auditável serão desenvolvidos em etapa posterior.
+ATUALIZAÇÃO NO GITHUB
+1. Abra https://github.com/acougueabr/abr-financeiro
+2. Em "Add file" > "Upload files", envie os arquivos DE DENTRO desta pasta para a raiz do repositório. Confirme as alterações. O arquivo index.html deve ficar na raiz, ao lado de app.js.
+3. Aguarde a publicação do GitHub Pages. Abra https://acougueabr.github.io/abr-financeiro/ e atualize/reabra o app até aparecer "V2.0" no cabeçalho.
+4. NÃO APAGUE o aplicativo instalado nem limpe os dados do Safari para atualizar. Basta atualizar os arquivos do site. A chave localStorage "abr-financeiro-v1" é preservada na v2.
 
-Para testar localmente em computador: python -m http.server 8000 e acesse http://localhost:8000.
+O QUE HÁ DE NOVO
+- Compras por mercadoria: Carne bovina, Porco, Frango, Toscana, Calabresa e Outro. Quantidade, custo unitário, desconto, preço de venda de referência e estimativa de margem bruta.
+- Vendas com múltiplos produtos, peso, preço unitário, pagamento em 1 ou 2 formas, valor recebido, troco e fiado/parcial.
+- Acumulado de vendas detalhadas por mercadoria e movimentações simples de estoque.
+- Histórico, backup JSON compatível com v1 e CSV com itens e pagamentos.
+- Mantém os números históricos da v1 sem duplicar entradas de caixa.
+
+ATENÇÃO AOS CÁLCULOS
+- Faturamento é o total das vendas, mesmo fiadas. Caixa recebe apenas os pagamentos efetivos, menos troco. Recebimentos parciais abatem o fiado.
+- Compras a prazo criam contas a pagar sem reduzir o caixa até o pagamento.
+- A estimativa de margem da compra não é lucro realizado. A bovina tem cortes e preços variados. Não inclui taxas de cartão, perdas, despesas ou estoque final.
+- O estoque NÃO está completo com as vendas antigas consolidadas. Registre ajustes de estoque inicial para tornar os saldos úteis.
+- Os registros financeiros ficam SOMENTE no armazenamento do navegador/PWA. GitHub Pages é público, mas os lançamentos locais não são enviados ao GitHub. Backups JSON não são criptografados.
+- Sem sincronização entre aparelhos ou entre contextos de armazenamento do Safari/PWA. Faça backups regulares.
+
+PARA TESTAR LOCALMENTE (PC): python -m http.server 8000
