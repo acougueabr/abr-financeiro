@@ -227,7 +227,7 @@ function addItem(){
   itemSequence++;
   const id='item'+itemSequence;
   const box=document.createElement('div');box.className='item abr-item-rapido';box.dataset.itemId=id;
-  box.innerHTML=`<div class="abr-item-fields"><div><label>Mercadoria</label><select class="itemProduto">${productOptions()}</select></div><div><label>Valor (R$)</label><input class="itemValor" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="0,00" aria-label="Valor cobrado"></div></div><div class="abr-item-foot"><details class="abr-item-opcional"><summary>Corte / detalhe (opcional)</summary><input class="itemDetalhe" placeholder="Ex.: Picanha, coxa, linguiça" aria-label="Detalhe da mercadoria"></details><button type="button" class="secondary smallBtn removeItem">Remover</button></div>`;
+  box.innerHTML=`<div class="abr-item-fields"><div><label>Valor da venda (R$)</label><input class="itemValor" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="0,00" aria-label="Valor cobrado"></div><div><label>Mercadoria</label><select class="itemProduto">${productOptions()}</select></div></div><div class="abr-item-foot"><details class="abr-item-opcional"><summary>Corte / detalhe (opcional)</summary><input class="itemDetalhe" placeholder="Ex.: Picanha, coxa, linguiça" aria-label="Detalhe da mercadoria"></details><button type="button" class="secondary smallBtn removeItem">Remover</button></div>`;
   el('itensVenda').appendChild(box);
   if(el('itensVenda').children.length===1)box.querySelector('.removeItem').classList.add('hidden');
   return box;
@@ -251,6 +251,10 @@ function paymentEntry(i){
 }
 function updatePaymentFields(i){
   const choice=el('metodo'+i).value;
+  if(i===1){document.querySelectorAll('[data-abr-fast-method]').forEach(b=>{
+    const active=b.dataset.abrFastMethod===choice;
+    b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));
+  });}
   el('conta'+i).value=paymentAccount(choice);
   const isCard=choice==='Maquininha';
   el('cartaoBox'+i).classList.toggle('hidden',!isCard);
@@ -304,6 +308,8 @@ function updateSalePreview(autofill=false){
   const items=getItems();const invalid=items.some(i=>!Number.isFinite(i.total)||i.total<=0);
   const total=invalid?0:sum(items.map(i=>i.total));
   el('totalVenda').textContent=money(total);
+  el('vendaBox').classList.toggle('abr-multi-item',items.length>1);
+  el('pagamentoVenda').classList.toggle('abr-has-troco',!el('fiadoVenda').checked&&sum([num('recebido1'),el('pagamentoMisto').checked?num('recebido2'):0])-total>0.005);
   if(autofill&&!el('recebido1').dataset.userEdited&&!el('fiadoVenda').checked)el('recebido1').value=total?total.toFixed(2):'';
   fillRemainderIfCoins();
   const bruto=el('fiadoVenda').checked?0:sum([num('recebido1'),el('pagamentoMisto').checked?num('recebido2'):0]);
@@ -346,7 +352,7 @@ function toggleFormType(){
   el('ajudaGeral').textContent=hints[t]||'';refreshLinks();
 }
 function resetForm(){
-  el('form').reset();el('data').value=today();el('itensVenda').innerHTML='';addItem();
+  el('form').reset();el('data').value=today();if(el('abr-date-label'))el('abr-date-label').textContent='Hoje';el('itensVenda').innerHTML='';addItem();
   delete el('recebido1').dataset.userEdited;delete el('recebido2').dataset.userEdited;
   el('pagamentoVenda').classList.remove('hidden');el('metodo1').value='Espécie';el('metodo2').value='Espécie';
   el('dividirTroco').checked=false;el('trocoParte1').value='';el('contaTroco').value='Espécie cédulas';el('contaTroco2').value='Espécie moedas';
@@ -519,6 +525,12 @@ function bind(){
   addItem();
   el('toggle').onclick=()=>el('form').classList.toggle('hidden');
   el('tipo').onchange=toggleFormType;
+  el('data').addEventListener('change',()=>{if(el('abr-date-label'))el('abr-date-label').textContent=el('data').value===today()?'Hoje':niceDate(el('data').value)});
+  document.querySelector('.abr-fast-methods')?.addEventListener('click',e=>{
+    const b=e.target.closest('[data-abr-fast-method]');if(!b)return;
+    const select=el('metodo1');select.value=b.dataset.abrFastMethod;
+    select.dispatchEvent(new Event('change',{bubbles:true}));
+  });
   el('filtroBtn').onclick=()=>{recentes=!recentes;render()};
   el('filtroHistoricoData').onchange=render;el('filtroHistoricoTipo').onchange=render;el('limparHistoricoFiltro').onclick=()=>{el('filtroHistoricoData').value='';el('filtroHistoricoTipo').value='';recentes=true;render()};
   el('historicoPlanilha').addEventListener('click',e=>{const b=e.target.closest('[data-private-delete]');if(b)removePrivateHistory(Number(b.dataset.privateDelete))});
@@ -560,4 +572,4 @@ function bind(){
   toggleFormType();updateSalePreview();updatePurchasePreview();
 }
 initialize();bind();render();
-if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=56').catch(()=>{});
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=58').catch(()=>{});

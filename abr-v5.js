@@ -13,6 +13,7 @@
     });
     $('abr-home').classList.toggle('abr-show',name==='inicio');
     document.querySelectorAll('.abr-bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.abrGo===name));
+    document.body.classList.toggle('abr-on-register',name==='registrar');
     if(name==='registrar')$('form').classList.remove('hidden');
     if(name==='mais'){
       document.querySelectorAll('#abr-more-hub [data-abr-sub]').forEach(b=>b.classList.toggle('abr-selected',b.dataset.abrSub===sub));
@@ -161,13 +162,16 @@
   }
   function paintAccountButtons(bal){
     for(const [key] of trackedAccounts){const value=document.querySelector(`[data-abr-amount="${key}"]`);
-      if(value)value.textContent=moneyBR(bal[key]||0);
+      if(value){const v=Number(bal[key]||0);value.textContent=v<-.005?'Conferir':moneyBR(v);value.classList.toggle('abr-balance-review',v<-.005);}
       const button=document.querySelector(`[data-abr-account="${key}"]`);
-      if(button){button.classList.toggle('active',activeAccount===key);button.setAttribute('aria-expanded',String(activeAccount===key));}
+      if(button){button.classList.toggle('active',activeAccount===key);button.classList.toggle('abr-needs-review',Number(bal[key]||0)<-.005);button.setAttribute('aria-expanded',String(activeAccount===key));}
     }
     const rest=Object.entries(bal).filter(([k,v])=>!trackedAccounts.some(([name])=>name===k)&&Math.abs(Number(v))>0.005);
     const other=$('abr-account-others');
-    other.innerHTML=rest.length?`<button type="button" class="abr-other-button" data-abr-go="mais" data-abr-sub="caixa">Outros saldos: <b>${moneyBR(sum(rest.map(([,v])=>v)))}</b> <span>Ver / organizar ↗</span></button>`:'';
+    const negatives=trackedAccounts.filter(([k])=>Number(bal[k]||0)<-.005);
+    const totalAntigo=sum(rest.map(([,v])=>v));
+    const alerta=[negatives.length?negatives.map(([,name])=>esc(name)).join(', ')+' a conferir':'',rest.length?moneyBR(totalAntigo)+' sem separação':''].filter(Boolean).join(' · ');
+    other.innerHTML=alerta?`<button class="abr-balance-compact-alert" type="button" id="abr-reconcile-warning"><span>⚠ ${alerta}</span><b>Conferir ›</b></button>`:'';
     const detail=$('abr-account-detail');
     if(!activeAccount){detail.hidden=true;detail.innerHTML='';return}
     detail.hidden=false;
@@ -175,10 +179,36 @@
       .sort((a,b)=>b.data.localeCompare(a.data)||(b.criadoEm||'').localeCompare(a.criadoEm||''))
       .slice(0,4);
     const title=trackedAccounts.find(([key])=>key===activeAccount)?.[1]||activeAccount;
-    detail.innerHTML=`<div class="abr-account-detail-head"><span>${esc(title)}</span><strong>${moneyBR(bal[activeAccount]||0)}</strong></div>`+
+    detail.innerHTML=`<div class="abr-account-detail-head"><span>${esc(title)}</span><strong>${Number(bal[activeAccount]||0)<-.005?'⚠ A conferir':moneyBR(bal[activeAccount]||0)}</strong></div>`+
       (events.length?events.map(r=>`<div class="abr-account-entry"><span>${niceDate(r.data)} • ${esc(r.descricao||r.tipo)}</span><b class="${effectByAccount(r)[activeAccount]<0?'red':'greenText'}">${effectByAccount(r)[activeAccount]<0?'−':'+'}${moneyBR(Math.abs(effectByAccount(r)[activeAccount]))}</b></div>`).join(''):'<p class="abr-soft">Ainda sem movimentações detalhadas nesta conta.</p>');
   }
   function currentPendingByCat(cat){return state.registros.filter(r=>r.tipo==='compra'&&supplierCategory(r)===cat&&r.status==='pendente'&&restante(r)>0.005)}
+  // V5.9: pagamento livre por forma, sem limitar pelas contas/valores exibidos.
+  // A conta contabil permanece associada a cada método para abater o caixa acumulado correto.
+  const paymentMethods=[
+    {conta:'Espécie cédulas',label:'Cédulas'},
+    {conta:'Espécie moedas',label:'Moedas'},
+    {conta:'Pix',label:'Pix'},
+    {conta:'Maquininha',label:'Maquininha'}
+  ];
+  function paymentParts(){
+    return [...$('abr-payment-sources').querySelectorAll('.abr-payment-source')].map(box=>({
+      conta:box.querySelector('.abr-pay-method-value').value,
+      valor:round2(Number(box.querySelector('.abr-pay-amount').value||0))
+    }));
+  }
+  function addPaymentSource(conta,valor){
+    const holder=$('abr-payment-sources');if(holder.children.length>=4)return;
+    const choice=paymentMethods.some(m=>m.conta===conta)?conta:paymentMethods[0].conta;
+    const box=document.createElement('div');box.className='abr-payment-source';
+    box.innerHTML=`<div class="abr-pay-source-head"><b>${holder.children.length?'Outra forma':'Forma de pagamento'}</b><button type="button" class="secondary abr-remove-source" aria-label="Remover esta forma de pagamento" ${holder.children.length?'':'hidden'}>×</button></div><input class="abr-pay-method-value" type="hidden" value="${esc(choice)}"><div class="abr-pay-methods" role="group" aria-label="Como pagou ao fornecedor">${paymentMethods.map(m=>`<button type="button" class="abr-pay-chip ${choice===m.conta?'active':''}" data-abr-method="${esc(m.conta)}" aria-pressed="${choice===m.conta}">${m.label}</button>`).join('')}</div><label>Valor pago nesta forma (R$)</label><input type="number" class="abr-pay-amount" inputmode="decimal" step="0.01" min="0.01" placeholder="0,00" value="${Number(valor||0)>0?Number(valor).toFixed(2):''}" aria-label="Valor pago por esta forma">`;
+    holder.appendChild(box);
+  }
+  function syncPaymentSourcesHead(){
+    const boxes=[...$('abr-payment-sources').querySelectorAll('.abr-payment-source')];
+    boxes.forEach((box,i)=>{box.querySelector('.abr-pay-source-head b').textContent=i?'Outra forma':'Forma de pagamento';box.querySelector('.abr-remove-source').hidden=i===0});
+    $('abr-payment-add-source').hidden=boxes.length>=4;
+  }
   function openPayment({id,cat,mode}){
     const purchase=id?state.registros.find(r=>r.id===id):null;
     if(id&&(!purchase||!isDebt(purchase)||restante(purchase)<=0.005)){alert('Essa conta já foi quitada ou não existe mais.');render();return}
@@ -189,57 +219,69 @@
     $('abr-payment-subtitle').textContent=id?`${purchase.id==='c3'&&purchase.legacy?'17/11/2026':niceDate(purchase.data)} • ${purchase.descricao}`:`Fornecedor: ${cat}`;
     $('abr-payment-amount').value=total.toFixed(2);
     $('abr-payment-amount').max=String(total);
+    $('abr-payment-date').value=today();
     $('abr-payment-account-wrap').hidden=sim;
     $('abr-payment-confirm').hidden=sim;
-    const bal=availableBalances();const target=$('abr-payment-account');
-    // Include saldo antigo and new accounts, but never invent a classification.
-    const choices=Object.entries(bal).filter(([,v])=>Number(v)>0.005)
-      .sort(([a],[b])=>['Espécie cédulas','Espécie moedas','Pix','Maquininha'].indexOf(a)-['Espécie cédulas','Espécie moedas','Pix','Maquininha'].indexOf(b));
-    target.innerHTML=choices.map(([k,v])=>`<option value="${esc(k)}">${esc(k)} — ${moneyBR(v)}</option>`).join('');
-    if(!target.options.length)target.innerHTML='<option value="">Nenhuma conta com saldo positivo</option>';
+    $('abr-payment-sources').innerHTML='';
+    addPaymentSource('Espécie cédulas',total);
+    syncPaymentSourcesHead();
     paintPaymentPreview();
     const dialog=$('abr-payment-dialog');
     if(typeof dialog.showModal==='function')dialog.showModal();else dialog.setAttribute('open','');
   }
   function paintPaymentPreview(){
     if(!paymentContext)return;
-    const amount=Number($('abr-payment-amount').value),f=dashboardFinancial();
+    const amount=round2(Number($('abr-payment-amount').value)),f=dashboardFinancial();
     const max=paymentContext.id?restante(state.registros.find(r=>r.id===paymentContext.id)):
       sum(currentPendingByCat(paymentContext.cat).map(restante));
     const isValid=Number.isFinite(amount)&&amount>0&&amount<=max+0.001;
+    const parts=paymentParts();
+    const allocated=sum(parts.map(p=>p.valor));
+    const gap=round2(amount-allocated);
+    const partsValid=parts.length>0&&parts.every(p=>p.conta&&Number.isFinite(p.valor)&&p.valor>0)&&
+      new Set(parts.map(p=>p.conta)).size===parts.length&&Math.abs(gap)<.005;
     const availAfter=round2(f.available-(isValid?amount:0));
     const debtAfter=round2(f.debt-(isValid?amount:0));
-    const selected=$('abr-payment-account').value;
-    const onAccount=Number(availableBalances()[selected]||0);
-    const accountAfter=round2(onAccount-(isValid?amount:0));
-    let content=`<div class="abr-sim-row"><span>Disponível agora</span><b>${moneyBR(f.available)}</b></div>`+
-      `<div class="abr-sim-row"><span>Conta pendente</span><b>${moneyBR(max)}</b></div>`+
-      `<div class="abr-sim-row"><span>Disponível depois deste pagamento</span><b class="${availAfter<0?'abr-warning':'greenText'}">${moneyBR(availAfter)}</b></div>`+
+    let content=`<div class="abr-sim-row"><span>Quanto tenho depois</span><b class="${availAfter<0?'abr-warning':'greenText'}">${moneyBR(availAfter)}</b></div>`+
       `<div class="abr-sim-row"><span>Contas a pagar depois</span><b>${moneyBR(debtAfter)}</b></div>`;
     if(paymentContext.mode==='confirm'){
-      content+=`<div class="abr-sim-row"><span>Saldo em ${esc(selected||'conta escolhida')} depois</span><b class="${accountAfter<0?'abr-warning':'greenText'}">${moneyBR(accountAfter)}</b></div>`;
-    }
-    content+=`<div class="abr-sim-highlight"><span>${availAfter>=debtAfter?'SOBRA APÓS QUITAR TODAS':'FALTA PRA QUITAR TODAS'}</span><strong>${moneyBR(Math.abs(round2(availAfter-debtAfter)))}</strong></div>`;
-    if(availAfter<0)content+='<p class="abr-warning">A simulação ultrapassa o total disponível.</p>';
-    if(paymentContext.mode==='confirm'&&accountAfter<0)content+='<p class="abr-warning">O pagamento deixará a conta escolhida negativa. Confira o saldo ou faça uma classificação antes.</p>';
-    if(!isValid)content+='<p class="abr-warning">Digite um valor positivo até o total pendente.</p>';
+      const balances=availableBalances();
+      content+=parts.filter(p=>p.conta&&p.valor>0).map(p=>{
+        const saldo=round2(Number(balances[p.conta]||0)-p.valor);
+        const nome=paymentMethods.find(m=>m.conta===p.conta)?.label||p.conta;
+        return `<div class="abr-sim-row"><span>${esc(nome)} depois</span><b class="${saldo<0?'abr-warning':'greenText'}">${saldo<0?'Saldo a conferir':moneyBR(saldo)}</b></div>`;
+      }).join('');
+      $('abr-payment-remaining').innerHTML=partsValid?'<span class="greenText">✓ Pagamento distribuído corretamente</span>':
+        `<span class="abr-warning">${gap>0?'Falta informar':'Excedeu o valor pago em'} ${moneyBR(Math.abs(gap))}${parts.length>1&&new Set(parts.map(p=>p.conta)).size!==parts.length?' · Selecione formas diferentes':''}</span>`;
+    }else $('abr-payment-remaining').textContent='';
+    content+=`<div class="abr-sim-highlight"><span>${availAfter>=debtAfter?'SOBRA DE CAIXA':'FALTA PRA QUITAR'}</span><strong>${moneyBR(Math.abs(round2(availAfter-debtAfter)))}</strong></div>`;
+    if(!isValid)content+='<p class="abr-warning">Informe um valor válido, até o saldo pendente.</p>';
     $('abr-payment-results').innerHTML=content;
-    $('abr-payment-confirm').disabled=!isValid||paymentContext.mode!=='confirm'||!selected;
+    $('abr-payment-confirm').disabled=!isValid||!partsValid||paymentContext.mode!=='confirm';
   }
   function confirmPayment(){
     if(!paymentContext||paymentContext.mode!=='confirm'||!paymentContext.id)return;
     const parent=state.registros.find(r=>r.id===paymentContext.id);
-    if(!parent||!isDebt(parent)||restante(parent)<=0.005){alert('Essa dívida já foi quitada.');closePayment();render();return}
-    const amount=round2(Number($('abr-payment-amount').value));
-    const account=$('abr-payment-account').value;
-    if(!Number.isFinite(amount)||amount<=0||amount>restante(parent)+0.001||!account){alert('Confira o valor e a conta.');return}
-    const accountBalance=Number(availableBalances()[account]||0);
-    if(accountBalance<amount-0.001&&!confirm(`A conta ${account} tem ${moneyBR(accountBalance)}, mas você marcou ${moneyBR(amount)}. Isso deixará o saldo negativo. Tem certeza que realmente pagou dessa conta?`))return;
-    if(!confirm(`Confirmar pagamento REAL de ${moneyBR(amount)}?\n${parent.descricao}\nConta: ${account}\n\nEsse valor sairá do caixa e reduzirá a dívida.`))return;
-    const row={id:uid(),tipo:'pagamento',data:today(),criadoEm:new Date().toISOString(),descricao:`Pagamento — ${parent.descricao}`,pessoa:parent.pessoa||'',valor:amount,conta:account,status:'quitado',vinculo:parent.id};
-    state.registros.push(row);
-    if(!save()){state.registros.pop();alert('Não foi possível salvar o pagamento. Nenhum saldo foi alterado.');return}
-    closePayment();render();alert('Pagamento registrado. Saldos e contas a pagar atualizados!');
+    if(!parent||!isDebt(parent)||restante(parent)<=0.005){alert('Esta dívida já foi quitada.');closePayment();render();return}
+    const amount=round2(Number($('abr-payment-amount').value)),parts=paymentParts();
+    const total=sum(parts.map(p=>p.valor));
+    if(!Number.isFinite(amount)||amount<=0||amount>restante(parent)+.001||
+       parts.length<1||parts.some(p=>!p.conta||!Number.isFinite(p.valor)||p.valor<=0)||
+       new Set(parts.map(p=>p.conta)).size!==parts.length||Math.abs(total-amount)>.005){
+       alert('Confira o valor pago e a divisão entre contas. A soma deve corresponder ao pagamento.');return;
+    }
+    const paidDate=$('abr-payment-date').value;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(paidDate)){alert('Informe a data em que realmente pagou.');return}
+    const details=parts.map(p=>`${paymentMethods.find(m=>m.conta===p.conta)?.label||p.conta}: ${moneyBR(p.valor)}`).join('\n');
+    const question=`Registrar pagamento de ${moneyBR(amount)} em ${niceDate(paidDate)}?\n${parent.descricao}\n\n${details}\n\nA dívida será reduzida e o valor sairá das formas informadas no caixa acumulado.`;
+    if(!confirm(question))return;
+    const old=state.registros.slice(),group=uid(),timestamp=new Date().toISOString();
+    parts.forEach((p,i)=>state.registros.push({id:uid(),tipo:'pagamento',data:paidDate,criadoEm:timestamp,
+      descricao:`Pagamento — ${parent.descricao}${parts.length>1?' (parte '+(i+1)+')':''}`,
+      pessoa:parent.pessoa||'',valor:p.valor,conta:p.conta,status:'quitado',vinculo:parent.id,
+      grupoTransferencia:group,origem:'pagamento-livre-v59'}));
+    if(!save()){state.registros=old;alert('Não foi possível salvar. Nenhum pagamento foi confirmado.');return}
+    closePayment();render();showSaveToast('Pagamento registrado');
   }
   function closePayment(){const d=$('abr-payment-dialog');if(d.open){if(typeof d.close==='function')d.close();else d.removeAttribute('open')}paymentContext=null}
   function paintEvolution(){
@@ -270,6 +312,63 @@
     $('abr-transfer-value').value='';render();
     alert('Saldo organizado! O total disponível não mudou.');
   }
+  // V5.7: conferência real, sem presumir origem de saldos antigos nem criar vendas.
+  const reconciledAccounts=['Espécie cédulas','Espécie moedas','Pix','Maquininha'];
+  const reconcileDialog=$('abr-reconcile-dialog');
+  function reconcileInputs(){return Array.from(reconcileDialog.querySelectorAll('[data-abr-reconcile]'))}
+  function reconcileValues(){
+    const values={};
+    for(const field of reconcileInputs()){
+      const value=Number(field.value);
+      if(!field.value.trim()||!Number.isFinite(value)||value<0)return null;
+      values[field.dataset.abrReconcile]=round2(value);
+    }
+    return values;
+  }
+  function showReconcilePreview(){
+    const current=round2(sum(Object.values(balance()))), values=reconcileValues();
+    const output=$('abr-reconcile-summary');
+    if(!values){output.innerHTML=`Total registrado: <b>${moneyBR(current)}</b><br>Informe os quatro valores para conferir.`;return}
+    const total=sum(Object.values(values)),difference=round2(total-current);
+    output.innerHTML=`<div>Registrado no app <b>${moneyBR(current)}</b></div><div>Contado nas 4 contas <b>${moneyBR(total)}</b></div><div class="${Math.abs(difference)>0.005?'abr-reconcile-difference':''}">Diferença de conferência <b>${difference>0?'+':''}${moneyBR(difference)}</b></div>`+
+      (Math.abs(difference)>0.005?'<p>Há uma diferença entre o caixa registrado e a contagem real. Ela será lançada como ajuste de caixa, <b>não como faturamento</b>, se você confirmar.</p>':'<p>Os saldos serão reorganizados sem mudar o total disponível.</p>');
+  }
+  function openReconcile(){
+    const bal=balance();
+    for(const field of reconcileInputs()){
+      const current=Number(bal[field.dataset.abrReconcile]||0);
+      // Números antigos são referência para digitação, não saldos verificados.
+      field.value=String(Math.max(0,round2(current)).toFixed(2));
+    }
+    showReconcilePreview();
+    reconcileDialog.showModal();
+  }
+  function closeReconcile(){reconcileDialog.close()}
+  function commitReconcile(event){
+    event.preventDefault();
+    const desired=reconcileValues();if(!desired){alert('Informe os quatro saldos corretamente.');return}
+    const before=balance();
+    const current=sum(Object.values(before)),target=sum(Object.values(desired)),difference=round2(target-current);
+    const detail=Object.entries(desired).map(([key,val])=>`${key.replace('Espécie ','')}: ${moneyBR(val)}`).join('\n');
+    const question=`Conferir os saldos de hoje?\n\n${detail}\n\nSaldo registrado: ${moneyBR(current)}\nSaldo contado: ${moneyBR(target)}\nDiferença: ${moneyBR(difference)}\n\n`+
+      (Math.abs(difference)>0.005?'A diferença será registrada como AJUSTE DE CAIXA, e não como venda. Verifique se faltou lançar alguma entrada/saída antes de continuar.':'O valor disponível total continuará igual.');
+    if(!confirm(question))return;
+    const oldRecords=state.registros.slice(),group=uid(),time=new Date().toISOString(),date=today();
+    const keys=new Set([...Object.keys(before),...reconciledAccounts]);
+    for(const key of keys){
+      const corrected=reconciledAccounts.includes(key)?desired[key]:0;
+      const delta=round2(corrected-(Number(before[key])||0));
+      if(Math.abs(delta)<0.005)continue;
+      state.registros.push({id:uid(),tipo:'ajuste',data:date,descricao:`Conferência de saldos • ${key}`,valor:delta,conta:key,status:'quitado',criadoEm:time,grupoTransferencia:group,origem:'conferencia-saldos'});
+    }
+    if(!save()){state.registros=oldRecords;return}
+    closeReconcile();activeAccount=null;render();
+  }
+  $('abr-reconcile-open').onclick=openReconcile;
+  $('abr-reconcile-close').onclick=closeReconcile;
+  $('abr-reconcile-cancel').onclick=closeReconcile;
+  reconcileInputs().forEach(field=>field.addEventListener('input',showReconcilePreview));
+  $('abr-reconcile-form').addEventListener('submit',commitReconcile);
   document.body.classList.add('abr-v5');
   // Home mode is default; anchor links to legacy sections remain navigable.
   document.querySelectorAll('.abr-bottom-nav [data-abr-go]').forEach(b=>b.onclick=()=>goto(b.dataset.abrGo));
@@ -278,16 +377,40 @@
     activeAccount=activeAccount===button.dataset.abrAccount?null:button.dataset.abrAccount;
     paintAccountButtons(availableBalances());
   });
-  $('abr-account-others').addEventListener('click',e=>{if(e.target.closest('[data-abr-go]'))goto('mais','caixa')});
+  $('abr-account-others').addEventListener('click',e=>{if(e.target.closest('#abr-reconcile-warning'))openReconcile()});
   $('abr-payment-close').onclick=closePayment;
   $('abr-payment-cancel').onclick=closePayment;
   $('abr-payment-dialog').addEventListener('cancel',()=>{paymentContext=null});
   $('abr-payment-amount').addEventListener('input',paintPaymentPreview);
-  $('abr-payment-account').addEventListener('change',paintPaymentPreview);
+  $('abr-payment-sources').addEventListener('input',paintPaymentPreview);
+  $('abr-payment-sources').addEventListener('change',paintPaymentPreview);
+  $('abr-payment-sources').addEventListener('click',e=>{
+    const button=e.target.closest('[data-abr-method]');
+    if(button){
+      const box=button.closest('.abr-payment-source');
+      box.querySelector('.abr-pay-method-value').value=button.dataset.abrMethod;
+      box.querySelectorAll('.abr-pay-chip').forEach(b=>{b.classList.toggle('active',b===button);b.setAttribute('aria-pressed',String(b===button))});
+      paintPaymentPreview();return;
+    }
+    if(!e.target.closest('.abr-remove-source'))return;
+    if($('abr-payment-sources').children.length<=1)return;
+    e.target.closest('.abr-payment-source').remove();syncPaymentSourcesHead();paintPaymentPreview();
+  });
+  $('abr-payment-add-source').onclick=()=>{
+    if($('abr-payment-sources').children.length>=4)return;
+    const amount=round2(Number($('abr-payment-amount').value));
+    const parts=paymentParts();
+    // A primeira forma deixa de ficar automaticamente com o valor total quando houver divisão.
+    if(parts.length===1&&(Math.abs(parts[0].valor-amount)<.005||parts[0].valor>amount)){
+      $('abr-payment-sources').querySelector('.abr-pay-amount').value='';
+    }
+    const used=paymentParts().map(p=>p.conta);
+    const choice=paymentMethods.find(m=>!used.includes(m.conta))?.conta||'Pix';
+    const remaining=Math.max(0,round2(amount-sum(paymentParts().map(p=>p.valor))));
+    addPaymentSource(choice,parts.length===1?0:remaining);syncPaymentSourcesHead();paintPaymentPreview();
+  };
   $('abr-payment-confirm').onclick=confirmPayment;
   $('abr-evo-range').onchange=paintEvolution;
-  $('abr-fast-sale').onclick=()=>quick('venda');
-  $('abr-fast-buy').onclick=()=>quick('compra');
   $('abr-fast-week').onclick=()=>quick('despesa','salario');
   $('abr-fast-scale').onclick=()=>quick('investimento','balanca');
   $('abr-transfer-form').addEventListener('submit',transfer);
