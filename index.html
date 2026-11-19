@@ -47,15 +47,27 @@
 /* V4.0: sincronização usando mesmo tema, sem interferir nos cartões do painel */
 .cloudPanel{border-color:#445e55}.cloudSelo{padding:5px 9px;border:1px solid #7b8692;border-radius:8px;font-size:11px;font-weight:800;letter-spacing:.5px}.cloudSelo.active{border-color:#59cb98;color:#63dca5}.cloudChoices{display:grid;grid-template-columns:1fr;gap:9px;margin:12px 0}.cloudChoices button{text-align:left}.cloudStatus{background:#203328;border:1px solid #3e7257;border-radius:11px;padding:12px;font-weight:bold;line-height:1.4}.cloudPanel .notice{margin-top:12px}.cloudAccess input{max-width:100%}
 </style>
-<link href="abr-v5.css" rel="stylesheet"/></head>
+<link href="abr-v5.css" rel="stylesheet"/><link href="abr-dia.css" rel="stylesheet"/></head>
 <body><main>
-<header class="top"><div class="brand">AÇOUGUE<br/><b>ABR</b></div><div style="border-left:1px solid #59606a;padding-left:16px"><h1>ABR FINANCEIRO</h1><p class="muted" id="periodo">14 A 18 DE NOVEMBRO DE 2026</p><span class="version">VERSÃO 5.0 • PAINEL SIMPLES</span></div></header><section aria-label="Painel principal" class="abr-screen-home" id="abr-home">
+<header class="top"><div class="brand">AÇOUGUE<br/><b>ABR</b></div><div style="border-left:1px solid #59606a;padding-left:16px"><h1>ABR FINANCEIRO</h1><p class="muted" id="periodo">14 A 18 DE NOVEMBRO DE 2026</p><span class="version">VERSÃO 5.1 • FECHAMENTO DIÁRIO</span></div></header><section aria-label="Painel principal" class="abr-screen-home" id="abr-home">
 <div class="abr-kpis">
 <article class="abr-kpi positive"><small>TEMOS DISPONÍVEL</small><strong id="abr-home-caixa">—</strong></article>
 <article class="abr-kpi negative"><small>CONTAS A PAGAR</small><strong id="abr-home-debitos">—</strong></article>
 <article class="abr-kpi neutral"><small>LUCRO</small><strong id="abr-home-lucro">A apurar</strong></article>
 </div>
 <div class="abr-shortcuts"><button id="abr-fast-sale" type="button">＋ Registrar venda</button><button class="secondary" id="abr-fast-buy" type="button">＋ Comprar mercadoria</button></div>
+<section class="abr-panel abr-dia-panel" id="abr-dia-painel" aria-label="Fechamento diário">
+<div class="abr-dia-head"><h2>FECHAMENTO DO DIA</h2><span class="abr-dia-pill" id="abr-dia-estado">—</span></div>
+<label for="abr-dia-data">Escolha o dia</label><select id="abr-dia-data" aria-label="Dia do fechamento"></select>
+<div class="abr-dia-total">VENDAS DO DIA<strong id="abr-dia-total">—</strong></div>
+<div class="abr-dia-grid" id="abr-dia-composicao"></div>
+<details class="abr-dia-more"><summary>Ver Pix, trocos, taxas e caixa contado</summary><div id="abr-dia-detalhe"></div></details>
+<div id="abr-dia-vendas"></div><div id="abr-dia-fornecedores"></div>
+<p class="abr-dia-help" id="abr-dia-conferencia"></p>
+<p class="abr-dia-alert" id="abr-dia-alerta"></p>
+<div class="abr-dia-import"><button class="secondary" id="abr-dia-importar" type="button">Importar base diária privada</button><input class="hidden" id="abr-dia-arquivo" type="file" accept=".json,application/json"/></div>
+<p id="abr-dia-origem" class="abr-dia-source"></p>
+</section>
 <section class="abr-panel"><div class="abr-panel-title"><h2>O QUE TEMOS DISPONÍVEL</h2><span class="abr-soft">Saldo atual</span></div>
 <div class="abr-money-list" id="abr-home-composicao"></div>
 <div class="abr-helper" id="abr-home-naoclassificado"></div>
@@ -130,4 +142,4 @@
 <button data-abr-go="registrar" type="button"><span>＋</span>Registrar</button>
 <button data-abr-go="pendencias" type="button"><span>▤</span>Débitos</button>
 <button data-abr-go="historico" type="button"><span>◷</span>Histórico</button>
-<button data-abr-go="mais" type="button"><span>☰</span>Mais</button></nav><script defer="True" src="abr-v5.js"></script></body></html>
+<button data-abr-go="mais" type="button"><span>☰</span>Mais</button></nav><script defer="True" src="abr-v5.js"></script><script defer src="abr-dia.js"></script></body></html>
