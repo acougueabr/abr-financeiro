@@ -1,0 +1,38 @@
+/* ABR Financeiro 6.1 — Histórico compacto, navegação por dia. */
+body.abr-hist-day-view #resumoDiario,body.abr-hist-day-view #historicoVendas,body.abr-hist-day-view #abr-hist-antigo{display:none!important}
+body.abr-hist-app-view #abr-hist-day-section{display:none!important}
+.abr-hist-panel{border:1px solid #415249;background:#181d22}
+.abr-hist-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.abr-hist-head h2{font-size:16px!important;margin:0!important}
+.abr-hist-head button{font-size:12px;white-space:nowrap;padding:9px 11px}
+.abr-hist-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:13px}
+.abr-hist-tab{border:1px solid #48535f;background:#232a33;font-size:12px;padding:10px 7px}
+.abr-hist-tab.active{background:#214939;color:#84eac2;border-color:#397a5b}
+.abr-hist-date-row{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.abr-hist-date-row label{flex:none;font-size:12px;margin:0}
+.abr-hist-date-row select{min-height:37px;padding:7px 9px;font-size:14px}
+.abr-hist-summary{display:flex;justify-content:space-between;align-items:center;gap:9px;background:#20262d;padding:11px;border-radius:9px;margin-bottom:8px}
+.abr-hist-summary small{font-size:11px;color:#b5c2cc;display:block;margin-bottom:4px}
+.abr-hist-summary strong{font-size:23px;line-height:1.1;color:#eafcf4;font-variant-numeric:tabular-nums}
+.abr-hist-pill{border-radius:6px;background:#294b3c;padding:5px 8px;font-size:10px;white-space:nowrap;color:#83dbad;font-weight:bold}
+.abr-hist-pill.partial{background:#4a3828;color:#ffd49b}
+.abr-hist-breakdown{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.abr-hist-money{background:#242b34;border-radius:9px;padding:10px;min-width:0}
+.abr-hist-money span{font-size:11px;color:#b4bec9;display:block;margin-bottom:6px}
+.abr-hist-money strong{font-size:17px;display:block;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.abr-hist-money small{color:#9daebf;font-size:10px;display:block;margin-top:5px}
+.abr-hist-sales-head{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:15px;padding-bottom:8px;border-bottom:1px solid #3d4651}
+.abr-hist-sales-head b{font-size:13px}
+.abr-hist-sales-head button{font-size:11px;min-height:30px;padding:7px 9px}
+.abr-hist-sale{border-bottom:1px solid #353c44;font-size:12px}
+.abr-hist-sale summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:9px;padding:9px 3px;list-style:none}
+.abr-hist-sale summary::-webkit-details-marker{display:none}
+.abr-hist-sale summary span{min-width:0;overflow-wrap:anywhere}
+.abr-hist-sale summary b{font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.abr-hist-sale summary small{display:block;color:#9da7b5;font-size:10px;margin-top:3px}
+.abr-hist-sale-body{border-left:2px solid #4e9e82;padding:2px 10px 9px;margin-bottom:7px;background:#1c2526;border-radius:5px}
+.abr-hist-sale-body div{display:flex;justify-content:space-between;gap:8px;padding:4px 0;font-size:11px}
+.abr-hist-sale-body p{color:#bdc9ce;font-size:11px;margin:6px 0;overflow-wrap:anywhere}
+.abr-hist-footnote{font-size:11px;color:#b3bdc8;line-height:1.5;margin:12px 0 0}
+.abr-hist-warning{color:#ffce8b}
+@media(max-width:580px){.abr-hist-panel{padding:12px}.abr-hist-head h2{font-size:15px!important}.abr-hist-head button{font-size:11px}.abr-hist-money strong{font-size:16px}}
