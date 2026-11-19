@@ -18,6 +18,12 @@ const KEY='abr-financeiro-v1';const money=n=>(Number(n)||0).toLocaleString('pt-B
 const PRODUCTS=['Carne bovina','Porco','Frango','Toscana','Calabresa','Outro'];
 const cents=x=>Math.round((Number(x)||0)*100);
 const round2=x=>Math.round((Number(x)+Number.EPSILON)*100)/100;
+// Compatibilidade: vendas antigas têm um único troco {valor, conta}; as novas podem ter partes.
+function trocoPartes(t){
+  if(!t)return [];
+  if(Array.isArray(t.partes)&&t.partes.length)return t.partes.filter(p=>p&&Number(p.valor)>0).map(p=>({conta:p.conta,valor:round2(p.valor)}));
+  return Number(t.valor)>0?[{conta:t.conta,valor:round2(t.valor)}]:[];
+}
 const num=id=>Number(el(id).value)||0;
 const fmtQty=(v,u='kg')=>`${Number(v||0).toLocaleString('pt-BR',{maximumFractionDigits:3})} ${u}`;
 const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
@@ -78,7 +84,7 @@ function balance(){
     if(r.tipo==='venda'){
       if(Array.isArray(r.recebimentos)){
         for(const p of r.recebimentos)delta(p.conta,round2(n(p)-Number(p.taxa||0)));
-        if(r.troco?.valor)delta(r.troco.conta,-Number(r.troco.valor));
+        for(const parte of trocoPartes(r.troco))delta(parte.conta,-parte.valor);
       }else if(r.status==='quitado')delta(r.conta,n(r));
     }else if(r.tipo==='recebimento')delta(r.conta,n(r));
     else if(r.tipo==='pagamento'||r.tipo==='emprestimo'||(['compra','despesa','investimento'].includes(r.tipo)&&r.status==='quitado'))delta(r.conta,-n(r));
@@ -140,7 +146,7 @@ function render(){
   const dateFilter=el('filtroHistoricoData').value,typeFilter=el('filtroHistoricoTipo').value;
   const filteredHistory=history.filter(r=>(!dateFilter||r.data===dateFilter)&&(!typeFilter||r.tipo===typeFilter));
   el('filtroBtn').textContent=recentes?'Ver todos':'Ver só recentes';
-  el('historico').innerHTML=(recentes?filteredHistory.slice(0,8):filteredHistory).map(r=>{const extra=r.tipo==='venda'&&Array.isArray(r.itens)?`<br><small>${r.itens.map(i=>`${esc(i.produto)}${i.detalhe?' — '+esc(i.detalhe):''}: ${money(i.total)}${Number(i.quantidade)>0?' ('+fmtQty(i.quantidade,i.unidade)+')':''}`).join(' • ')}${r.troco?.valor?` • Troco: ${money(r.troco.valor)} (${esc(r.troco.conta)})`:''}</small>`:r.tipo==='compra'&&r.precoVendaRef?`<br><small>Venda referência: ${money(r.precoVendaRef)}/${esc(r.unidade||'kg')}</small>`:'';
+  el('historico').innerHTML=(recentes?filteredHistory.slice(0,8):filteredHistory).map(r=>{const extra=r.tipo==='venda'&&Array.isArray(r.itens)?`<br><small>${r.itens.map(i=>`${esc(i.produto)}${i.detalhe?' — '+esc(i.detalhe):''}: ${money(i.total)}${Number(i.quantidade)>0?' ('+fmtQty(i.quantidade,i.unidade)+')':''}`).join(' • ')}${r.troco?.valor?` • Troco: ${money(r.troco.valor)} (${trocoPartes(r.troco).map(p=>`${money(p.valor)} em ${esc(p.conta)}`).join(' + ')})`:''}</small>`:r.tipo==='compra'&&r.precoVendaRef?`<br><small>Venda referência: ${money(r.precoVendaRef)}/${esc(r.unidade||'kg')}</small>`:'';
     return `<div class="record"><div class="line"><strong class="scrollText">${esc(r.descricao)}</strong><strong>${r.tipo==='estoque'?fmtQty(r.quantidade,r.unidade):money(n(r))}</strong></div><small>${niceDate(r.data)} • ${esc(r.tipo)} • ${esc(r.status||'')} ${r.legacy?'• Saldo inicial':''} ${r.vinculo?'• vinculado':''}</small>${extra}${r.legacy?'<small class="muted"> • Inicial protegido</small>':`<div class="recordActions"><button type="button" class="secondary smallBtn deleteRecord" data-delete="${esc(r.id)}">Excluir lançamento</button></div>`}</div>`}).join('')||'<p class="hint">Nenhuma movimentação encontrada nesse filtro.</p>';
   refreshLinks();updateDayStatus();renderSpreadsheetHistory();
 }
@@ -221,7 +227,7 @@ function addItem(){
   itemSequence++;
   const id='item'+itemSequence;
   const box=document.createElement('div');box.className='item abr-item-rapido';box.dataset.itemId=id;
-  box.innerHTML=`<div class="itemTop"><b>Item da venda</b><button type="button" class="secondary smallBtn removeItem">Remover</button></div><div class="formgrid"><div><label>Mercadoria</label><select class="itemProduto">${productOptions()}</select></div><div><label>Valor que vai cobrar (R$)</label><input class="itemValor" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="Ex.: 38,00" aria-label="Valor cobrado"></div></div><details class="abr-item-opcional"><summary>Informar corte ou detalhe (opcional)</summary><input class="itemDetalhe" placeholder="Ex.: Picanha, coxa, linguiça" aria-label="Detalhe da mercadoria"></details>`;
+  box.innerHTML=`<div class="abr-item-fields"><div><label>Mercadoria</label><select class="itemProduto">${productOptions()}</select></div><div><label>Valor (R$)</label><input class="itemValor" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="0,00" aria-label="Valor cobrado"></div></div><div class="abr-item-foot"><details class="abr-item-opcional"><summary>Corte / detalhe (opcional)</summary><input class="itemDetalhe" placeholder="Ex.: Picanha, coxa, linguiça" aria-label="Detalhe da mercadoria"></details><button type="button" class="secondary smallBtn removeItem">Remover</button></div>`;
   el('itensVenda').appendChild(box);
   if(el('itensVenda').children.length===1)box.querySelector('.removeItem').classList.add('hidden');
   return box;
@@ -235,38 +241,85 @@ function getItems(){
   });
 }
 function saleTotal(){return sum(getItems().map(i=>i.total))}
+// As quatro opções visíveis determinam a conta; cartão sempre vai à Maquininha.
+function paymentAccount(choice){
+  return ({'Espécie':'Espécie cédulas','Moeda':'Espécie moedas','Pix':'Pix','Maquininha':'Maquininha'})[choice]||'';
+}
+function paymentEntry(i){
+  const choice=el('metodo'+i).value;
+  return {metodo:choice==='Maquininha'?el('cartao'+i).value:choice==='Pix'?'Pix':'Dinheiro',conta:paymentAccount(choice),valor:round2(num('recebido'+i)),taxa:round2(num('taxa'+i))};
+}
+function updatePaymentFields(i){
+  const choice=el('metodo'+i).value;
+  el('conta'+i).value=paymentAccount(choice);
+  const isCard=choice==='Maquininha';
+  el('cartaoBox'+i).classList.toggle('hidden',!isCard);
+  const fee=el('taxa'+i),wrap=fee.closest('.abr-fee-fold');
+  wrap.classList.toggle('hidden',!isCard);
+  if(!isCard){fee.value='';wrap.open=false}
+}
+function updateSecondPaymentLayout(){
+  const coin=el('metodo1').value==='Moeda';
+  if(coin){el('pagamentoMisto').checked=true;if(el('metodo2').value==='Moeda')el('metodo2').value='Espécie'}
+  el('pagamentoMistoRow').classList.toggle('hidden',coin);
+  el('segundaForma').classList.toggle('hidden',!el('pagamentoMisto').checked);
+  updatePaymentFields(1);updatePaymentFields(2);
+}
+function fillRemainderIfCoins(){
+  if(el('metodo1').value!=='Moeda'||!el('pagamentoMisto').checked||el('recebido2').dataset.userEdited)return;
+  const total=saleTotal();
+  const remaining=Math.max(0,round2(total-num('recebido1')));
+  el('recebido2').value=total>0?remaining.toFixed(2):'';
+}
+// Divisão de troco é opcional. A segunda parcela é calculada, evitando erro de soma.
+function showTrocoSplit(troco){
+  const temTroco=troco>0.001&&!el('fiadoVenda').checked;
+  el('abr-troco-opcoes').classList.toggle('hidden',!temTroco);
+  if(!temTroco){el('dividirTroco').checked=false;el('trocoParte1').value=''}
+  const dividido=temTroco&&el('dividirTroco').checked;
+  el('abr-troco-dividido').classList.toggle('hidden',!dividido);
+  el('trocoErro').classList.add('hidden');el('trocoErro').textContent='';
+  if(!dividido)return null;
+  const input=el('trocoParte1');const raw=input.value;
+  if(raw===''){el('trocoParte2').textContent=money(troco);return {valid:false,reason:'Informe o valor da 1ª forma de troco.'}}
+  const v1=round2(Number(raw));const v2=round2(troco-v1);
+  el('trocoParte2').textContent=money(Math.max(0,v2));
+  const invalid=!Number.isFinite(v1)||v1<=0||v2<=0;
+  const same=el('contaTroco').value===el('contaTroco2').value;
+  if(invalid||same){
+    const reason=invalid?'A 1ª forma deve ser maior que zero e menor que o troco total.':'Escolha duas formas diferentes de troco.';
+    el('trocoErro').textContent=reason;el('trocoErro').classList.remove('hidden');
+    return {valid:false,reason};
+  }
+  return {valid:true,partes:[{conta:el('contaTroco').value,valor:v1},{conta:el('contaTroco2').value,valor:v2}]};
+}
+function saleTrocoObject(total){
+  if(total<=0)return null;
+  if(!el('dividirTroco').checked)return {valor:total,conta:el('contaTroco').value};
+  const split=showTrocoSplit(total);
+  if(!split||!split.valid){alert(split?.reason||'Confira a divisão do troco.');return false}
+  return {valor:total,conta:split.partes[0].conta,partes:split.partes};
+}
 function updateSalePreview(autofill=false){
-  const items=getItems();
-  const invalid=items.some(i=>!Number.isFinite(i.total)||i.total<=0);
-  const total=invalid?0:sum(items.map(i=>i.total));el('totalVenda').textContent=money(total);
+  const items=getItems();const invalid=items.some(i=>!Number.isFinite(i.total)||i.total<=0);
+  const total=invalid?0:sum(items.map(i=>i.total));
+  el('totalVenda').textContent=money(total);
   if(autofill&&!el('recebido1').dataset.userEdited&&!el('fiadoVenda').checked)el('recebido1').value=total?total.toFixed(2):'';
+  fillRemainderIfCoins();
   const bruto=el('fiadoVenda').checked?0:sum([num('recebido1'),el('pagamentoMisto').checked?num('recebido2'):0]);
   const troco=Math.max(0,round2(bruto-total));const falta=Math.max(0,round2(total-bruto));
   el('trocoPrevisto').textContent=money(total?troco:0);
-  el('situacaoVenda').innerHTML=total<=0?'Digite apenas o valor que vai cobrar. Ex.: balança R$ 38,02, cobrar R$ 38,00.':el('fiadoVenda').checked?`<b class="orange">Venda fiada:</b> ${money(total)} a receber. Informe o cliente.`:falta>0?`<b class="orange">Fiado / pagamento parcial:</b> ${money(falta)} ficará a receber. Informe o cliente.`:troco>0?`<b class="greenText">Venda recebida:</b> devolver ${money(troco)} de troco por ${esc(el('contaTroco').selectedOptions[0].textContent)}.`:`<b class="greenText">Venda paga:</b> ${money(total)} recebido, sem troco.`;
-  renderAccountPreview(total,bruto,troco);
-}
-// Taxa é exclusivamente custo da maquininha; NÃO representa centavos dispensados ao cliente.
-// Prévia imediata: cada conta recebe ou devolve exatamente o valor lançado.
-function renderAccountPreview(total,bruto,troco){
-  const target=el('abr-previa-contas');if(!target)return;
-  if(total<=0){target.innerHTML='';return}
-  if(el('fiadoVenda').checked){target.innerHTML='<span class="abr-help">Fiado: o caixa não muda até receber o pagamento.</span>';return}
-  const diff=new Map();
-  const put=(account,amount)=>{if(!account||!amount)return;diff.set(account,round2((diff.get(account)||0)+amount))};
-  for(const i of (el('pagamentoMisto').checked?[1,2]:[1])){
-    const amount=num('recebido'+i);if(amount<=0)continue;
-    put(el('conta'+i).value,round2(amount-num('taxa'+i)));
+  const split=showTrocoSplit(troco);
+  const notice=el('situacaoVenda');
+  let text='';
+  if(total>0&&el('fiadoVenda').checked)text=`Fiado: ${money(total)}. Informe o cliente.`;
+  else if(total>0&&falta>0)text=`Falta receber ${money(falta)} — informe o cliente.`;
+  else if(total>0&&troco>0){
+    if(el('dividirTroco').checked){
+      text=split?.valid?`Devolver ${money(split.partes[0].valor)} em ${esc(el('contaTroco').selectedOptions[0].textContent)} + ${money(split.partes[1].valor)} em ${esc(el('contaTroco2').selectedOptions[0].textContent)}.`:(split?.reason||'Confira a divisão do troco.');
+    }else text=`Devolver ${money(troco)} em ${esc(el('contaTroco').selectedOptions[0].textContent)}.`;
   }
-  if(troco>0)put(el('contaTroco').value,-troco);
-  const rows=[...diff.entries()].filter(([,v])=>Math.abs(v)>0.005);
-  target.innerHTML=`<b>O que muda no seu caixa ao salvar:</b><div class="abr-previa-list">${rows.map(([name,amount])=>`<div><span>${esc(name==='Espécie cédulas'?'Cédulas':name==='Espécie moedas'?'Moedas':name)}</span><strong class="${amount<0?'red':'greenText'}">${amount>0?'+':''}${money(amount)}</strong></div>`).join('')||'Nenhuma movimentação em conta'}</div>`;
-}
-function atualizarCampoTaxa(i){
-  const seletor=el('metodo'+i),taxa=el('taxa'+i);
-  const cartao=['Débito','Crédito à vista','Crédito parcelado'].includes(seletor.value);
-  taxa.parentElement.classList.toggle('hidden',!cartao);
-  if(!cartao)taxa.value='';
+  notice.innerHTML=text;notice.classList.toggle('hidden',!text);
 }
 function updatePurchasePreview(){
   const qtd=num('qtdCompra'),custo=num('custoCompra'),venda=num('precoVendaCompra'),desconto=num('descontoCompra');
@@ -294,15 +347,22 @@ function toggleFormType(){
 }
 function resetForm(){
   el('form').reset();el('data').value=today();el('itensVenda').innerHTML='';addItem();
-  delete el('recebido1').dataset.userEdited;
-  el('pagamentoVenda').classList.remove('hidden');el('segundaForma').classList.add('hidden');
-  for(const i of [1,2])atualizarCampoTaxa(i);
+  delete el('recebido1').dataset.userEdited;delete el('recebido2').dataset.userEdited;
+  el('pagamentoVenda').classList.remove('hidden');el('metodo1').value='Espécie';el('metodo2').value='Espécie';
+  el('dividirTroco').checked=false;el('trocoParte1').value='';el('contaTroco').value='Espécie cédulas';el('contaTroco2').value='Espécie moedas';
+  updateSecondPaymentLayout();
   el('tipo').value='venda';toggleFormType();updateSalePreview();updatePurchasePreview();
+}
+function showSaveToast(message){
+  let toast=el('abr-save-toast');
+  if(!toast){toast=document.createElement('div');toast.id='abr-save-toast';toast.setAttribute('role','status');document.body.appendChild(toast)}
+  toast.textContent='✓ '+message;toast.classList.add('show');
+  clearTimeout(showSaveToast.timer);showSaveToast.timer=setTimeout(()=>toast.classList.remove('show'),2400);
 }
 function addRecord(record){
   state.registros.push(record);
   if(!save()){state.registros.pop();alert('Não foi possível salvar no aparelho. Faça um backup e verifique o espaço.');return false}
-  render();resetForm();alert('Movimentação salva!');return true;
+  render();resetForm();showSaveToast('Movimentação registrada');return true;
 }
 function submitForm(e){
   e.preventDefault();const tipo=el('tipo').value,data=el('data').value;
@@ -312,13 +372,14 @@ function submitForm(e){
     const itens=getItems();if(!itens.length||itens.some(i=>!Number.isFinite(i.total)||i.total<=0)){alert('Informe um valor cobrado maior que zero em cada mercadoria.');return}
     const total=sum(itens.map(i=>i.total));if(total<=0){alert('O valor da venda precisa ser maior que zero.');return}
     const fiado=el('fiadoVenda').checked;
-    const entradas=fiado?[]:[{metodo:el('metodo1').value,conta:el('conta1').value,valor:round2(num('recebido1')),taxa:round2(num('taxa1'))},...(el('pagamentoMisto').checked?[{metodo:el('metodo2').value,conta:el('conta2').value,valor:round2(num('recebido2')),taxa:round2(num('taxa2'))}]:[])].filter(p=>p.valor>0);
+    const entradas=fiado?[]:[paymentEntry(1),...(el('pagamentoMisto').checked?[paymentEntry(2)]:[])].filter(p=>p.valor>0);
     const bruto=sum(entradas.map(p=>p.valor)),trocoValor=Math.max(0,round2(bruto-total));
     const liquido=round2(bruto-trocoValor),pendente=Math.max(0,round2(total-liquido));
     const cliente=el('clienteVenda').value.trim();if(pendente>0&&!cliente){alert('Informe o nome do cliente para a parte fiada.');return}
     if(entradas.some(p=>!p.conta||p.taxa<0||p.taxa>p.valor)||!Number.isFinite(bruto)){alert('Confira as formas de pagamento e as taxas. A taxa não pode superar o valor recebido.');return}
+    const troco=saleTrocoObject(trocoValor);if(troco===false)return;
     const descricao=itens.map(i=>i.produto+(i.detalhe?' — '+i.detalhe:'')).join(' + ');
-    return addRecord({...base,descricao,pessoa:cliente,observacao:el('obsVenda').value.trim(),itens,valor:total,recebimentos:entradas,troco:trocoValor?{valor:trocoValor,conta:el('contaTroco').value}:null,status:pendente>0?'pendente':'quitado'});
+    return addRecord({...base,descricao,pessoa:cliente,observacao:el('obsVenda').value.trim(),itens,valor:total,recebimentos:entradas,troco,status:pendente>0?'pendente':'quitado'});
   }
   if(tipo==='compra'){
     const produto=el('produtoCompra').value,quantidade=num('qtdCompra'),preco=num('custoCompra'),desconto=num('descontoCompra'),valor=round2(quantidade*preco-desconto);
@@ -375,7 +436,7 @@ function renderDailyMethods(){
     totalVendas=round2(totalVendas+Number(r.valor||0));count++;
     if(!Array.isArray(r.recebimentos)){semDetalhe=round2(semDetalhe+Number(r.valor||0));continue}
     for(const p of r.recebimentos){put(p.conta||'Não identificado','entrada',p.valor);put(p.conta||'Não identificado','taxa',p.taxa)}
-    if(r.troco?.valor)put(r.troco.conta||'Não identificado','troco',r.troco.valor);
+    for(const p of trocoPartes(r.troco))put(p.conta||'Não identificado','troco',p.valor);
   }
   const show=(name)=>{const v=flows.get(name)||{entrada:0,troco:0,taxa:0},liquido=round2(v.entrada-v.troco-v.taxa);
     const signo=liquido<0?'red':'greenText';
@@ -470,14 +531,28 @@ function bind(){
   el('itensVenda').addEventListener('input',e=>{if(e.target.matches('.itemValor,.itemDetalhe'))updateSalePreview(true)});
   el('itensVenda').addEventListener('change',e=>{if(e.target.matches('.itemProduto'))updateSalePreview(true)});
   el('recebido1').addEventListener('input',()=>{el('recebido1').dataset.userEdited='1';updateSalePreview()});
-  el('recebido2').addEventListener('input',()=>updateSalePreview());
+  el('recebido2').addEventListener('input',()=>{el('recebido2').dataset.userEdited='1';updateSalePreview()});
   for(const id of ['taxa1','taxa2'])el(id).addEventListener('input',()=>updateSalePreview());
   el('fiadoVenda').onchange=()=>{el('pagamentoVenda').classList.toggle('hidden',el('fiadoVenda').checked);if(el('fiadoVenda').checked)el('abr-venda-extras').open=true;updateSalePreview()};
-  el('pagamentoMisto').onchange=()=>{el('segundaForma').classList.toggle('hidden',!el('pagamentoMisto').checked);updateSalePreview()};
-  el('contaTroco').onchange=()=>updateSalePreview();
-  for(const id of ['conta1','conta2'])el(id).onchange=updateSalePreview;
-  for(const i of [1,2])el('metodo'+i).onchange=()=>{el('conta'+i).value=el('metodo'+i).value==='Dinheiro'?'Espécie cédulas':el('metodo'+i).value==='Pix'?'Pix':'Maquininha';atualizarCampoTaxa(i);updateSalePreview()};
-  for(const i of [1,2])atualizarCampoTaxa(i);
+  el('pagamentoMisto').onchange=()=>{updateSecondPaymentLayout();updateSalePreview()};
+  el('contaTroco').onchange=updateSalePreview;
+  el('dividirTroco').onchange=()=>{el('trocoParte1').value='';updateSalePreview()};
+  el('trocoParte1').oninput=updateSalePreview;
+  el('contaTroco2').onchange=updateSalePreview;
+  el('metodo1').onchange=()=>{
+    if(el('metodo1').value==='Moeda'){
+      el('recebido1').value='';el('recebido1').dataset.userEdited='1';
+      el('recebido2').value='';delete el('recebido2').dataset.userEdited;
+    }else{
+      el('pagamentoMisto').checked=false;el('recebido2').value='';
+      delete el('recebido1').dataset.userEdited;delete el('recebido2').dataset.userEdited;
+      el('recebido1').value=saleTotal()>0?saleTotal().toFixed(2):'';
+    }
+    updateSecondPaymentLayout();updateSalePreview();
+  };
+  el('metodo2').onchange=()=>{updateSecondPaymentLayout();updateSalePreview()};
+  for(const i of [1,2])el('cartao'+i).onchange=updateSalePreview;
+  updateSecondPaymentLayout();
   for(const id of ['qtdCompra','custoCompra','precoVendaCompra','descontoCompra','produtoCompra'])el(id).addEventListener('input',updatePurchasePreview);
   el('form').onsubmit=submitForm;
   el('exportar').onclick=exportJSON;el('csv').onclick=exportCSV;
@@ -485,4 +560,4 @@ function bind(){
   toggleFormType();updateSalePreview();updatePurchasePreview();
 }
 initialize();bind();render();
-if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=54').catch(()=>{});
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=56').catch(()=>{});

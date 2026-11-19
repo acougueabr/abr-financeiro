@@ -1,4 +1,4 @@
-/* ABR Financeiro 5.0 — interface compacta baseada nos dados reais da v4.
+/* ABR Financeiro 5.5 — interface compacta baseada nos dados reais da v4.
  * Mantém o mesmo localStorage, o mesmo banco Supabase e as mesmas IDs.
  * Não inventa separação entre Pix/cartões ou lucro de vendas históricas. */
 'use strict';
@@ -153,7 +153,7 @@
     const add=(name,v)=>{if(!name)return;effects[name]=round2((effects[name]||0)+v)};
     if(record.tipo==='venda'&&Array.isArray(record.recebimentos)){
       for(const p of record.recebimentos)add(p.conta,round2(Number(p.valor||0)-Number(p.taxa||0)));
-      if(record.troco?.valor)add(record.troco.conta,-Number(record.troco.valor));
+      for(const p of trocoPartes(record.troco))add(p.conta,-p.valor);
     }else if(['recebimento','ajuste'].includes(record.tipo))add(record.conta,n(record));
     else if(['pagamento','emprestimo'].includes(record.tipo)||(['compra','despesa','investimento'].includes(record.tipo)&&record.status==='quitado'))add(record.conta,-n(record));
     else if(record.tipo==='venda'&&record.status==='quitado')add(record.conta,n(record));

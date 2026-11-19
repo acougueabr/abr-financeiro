@@ -32,8 +32,8 @@
           details.cartaoCaderno+=gross;details.taxasCartao+=tax;
         }else details.outros+=gross;
       }
-      if(r.troco?.valor){
-        const change=Number(r.troco.valor)||0;const account=String(r.troco.conta||'').toLocaleLowerCase('pt-BR');
+      for(const changePart of trocoPartes(r.troco)){
+        const change=Number(changePart.valor)||0;const account=String(changePart.conta||'').toLocaleLowerCase('pt-BR');
         if(account.includes('pix')||account.includes('picpay')) details.trocoPix+=change;
         else if(account.includes('espécie')||account.includes('especie')) details.especieVendas-=change;
         else if(account.includes('maquininha')) details.cartaoCaderno-=change;

@@ -173,3 +173,74 @@ body.abr-v5 .abr-home-payables .abr-supplier-body{padding-top:4px}
  .abr-payment-dialog{padding:14px}
 }
 @media print { .abr-bottom-nav,.abr-shortcuts,.abr-evo-toolbar,header.top,.abr-payment-dialog{display:none!important} body.abr-v5 main>[data-abr-screen="mais"].abr-show{display:block!important} }
+
+
+/* V5.5 — cadastro de venda compacto, sem caixa duplicado e sem texto desnecessário. */
+body.abr-v5 #abr-reg-resumo{display:none!important}
+body.abr-v5 #movimentacao{padding:13px 14px;margin-top:10px}
+body.abr-v5 #movimentacao .sectionHead{margin-bottom:2px;align-items:center}
+body.abr-v5 #movimentacao .sectionHead h2{font-size:18px;margin:0}
+body.abr-v5 #movimentacao #toggle{display:none}
+body.abr-v5 #movimentacao form label{font-size:12px;margin:6px 0 4px;line-height:1.2}
+body.abr-v5 #movimentacao form input:not([type=checkbox]):not([type=hidden]),
+body.abr-v5 #movimentacao form select{min-height:42px;height:42px;padding:8px 9px;font-size:16px;line-height:1.2;border-radius:8px}
+body.abr-v5 #movimentacao #form>.formgrid{grid-template-columns:minmax(0,1fr) minmax(0,0.88fr);gap:9px}
+body.abr-v5 #movimentacao .abr-sale-section{margin-top:8px;padding-top:7px}
+body.abr-v5 #movimentacao .abr-item-rapido{background:transparent;border:0;border-radius:0;padding:0;margin:0}
+body.abr-v5 #movimentacao .abr-item-rapido:not(:first-child){border-top:1px solid #35404a;padding-top:8px;margin-top:9px}
+.abr-item-fields{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.85fr);gap:9px}
+.abr-item-fields>div{min-width:0}
+.abr-item-fields .itemValor{font-weight:750}
+.abr-item-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:5px 0 2px}
+.abr-item-foot .abr-item-opcional{flex:1;min-width:0}
+.abr-item-foot summary{font-size:11px;color:#99a8b5;cursor:pointer;padding:5px 0}
+.abr-item-foot .itemDetalhe{margin-top:4px}
+body.abr-v5 #movimentacao .abr-add-item{background:transparent;color:#72d7ac;border:0;padding:7px 0;text-align:left;font-size:12px}
+body.abr-v5 #movimentacao .abr-sale-total{border:0;border-top:1px solid #314f42;background:transparent;margin:2px 0 4px;padding:7px 0 5px;border-radius:0;gap:8px}
+.abr-sale-total span{color:#bac5c8;font-size:12px;text-transform:none}
+.abr-sale-total strong{color:#68d7a6;font-size:19px}
+body.abr-v5 #movimentacao .abr-sale-extra{border:0;margin:0;padding:2px 0 6px}
+.abr-sale-extra summary{font-size:11px!important;padding:3px 0}
+.abr-receipt-section{border-top:1px solid #37434b;margin-top:5px;padding-top:8px}
+.abr-receipt-head{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.abr-receipt-head h3{font-size:15px;margin:0}
+body.abr-v5 #movimentacao .abr-fiado-check{font-size:12px;margin:0;white-space:nowrap}
+body.abr-v5 #movimentacao .abr-fiado-check input{width:18px;height:18px}
+.abr-pay-primary,.abr-pay-secondary{display:grid;grid-template-columns:minmax(0,1.03fr) minmax(0,.85fr);gap:8px}
+.abr-pay-primary>div,.abr-pay-secondary>div{min-width:0}
+.abr-second-payment{background:#202730;border-radius:10px;padding:7px 9px;margin-top:6px}
+.abr-second-payment.hidden{display:none!important}
+.abr-card-type{margin-top:5px}
+.abr-card-type select{max-width:240px}
+body.abr-v5 #movimentacao .abr-misto-check{font-size:12px;margin:7px 0 0;color:#aebac2}
+body.abr-v5 #movimentacao .abr-misto-check input{width:17px;height:17px}
+.abr-fee-fold{margin-top:5px}
+.abr-fee-fold summary{font-size:12px;color:#adb9c2;cursor:pointer;padding:5px 0}
+.abr-fee-fold input{max-width:230px}
+.abr-troco-row{display:grid;grid-template-columns:1fr 1fr;align-items:end;gap:9px;margin-top:6px}
+.abr-change-amount{display:flex;align-items:flex-end;flex-direction:column;justify-content:center;padding:8px 0 5px;min-height:42px}
+.abr-change-amount span{font-size:11px;color:#b9c5c9}
+.abr-change-amount strong{font-size:20px;color:#70d9ac}
+.abr-sale-status{color:#f5d2a0;font-size:12px;padding:4px 0 2px}
+.abr-sale-status.hidden{display:none!important}
+body.abr-v5 #movimentacao .abr-submit-row{border-top:1px solid #354249;padding-top:9px;margin-top:7px}
+body.abr-v5 #movimentacao #salvarMov{background:#238b6c;border:1px solid #39b88c;border-radius:10px;padding:12px 15px;font-size:15px;min-height:44px;width:100%;font-weight:800}
+body.abr-v5 #movimentacao #salvarMov:hover{background:#2f9c7a}
+body.abr-v5 #movimentacao #salvarMov:focus-visible{outline:3px solid #9dffce;outline-offset:3px}
+#abr-save-toast{position:fixed;z-index:220;bottom:calc(85px + env(safe-area-inset-bottom));left:50%;transform:translate(-50%,10px);border:1px solid #60d7a2;background:#143f2c;color:#d9ffe7;border-radius:11px;padding:12px 18px;white-space:nowrap;font-size:14px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+#abr-save-toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:650px){body.abr-v5 #movimentacao{padding:12px;margin-top:8px}body.abr-v5 #movimentacao #form>.formgrid{grid-template-columns:minmax(0,1fr) minmax(0,0.95fr)}.abr-item-fields,.abr-pay-primary,.abr-pay-secondary,.abr-troco-row{gap:7px}.abr-sale-total strong{font-size:18px}.abr-change-amount strong{font-size:19px}}
+@media(max-width:350px){body.abr-v5 #movimentacao form input:not([type=checkbox]):not([type=hidden]),body.abr-v5 #movimentacao form select{padding-left:6px;padding-right:6px}.abr-item-fields,.abr-pay-primary,.abr-pay-secondary{grid-template-columns:minmax(0,1fr) minmax(0,.8fr)}}
+
+/* 5.6 — Dois trocos opcionais, segunda parcela automática, sem ampliar o formulário padrão. */
+.abr-troco-opcoes{margin:3px 0 0}
+.abr-troco-opcoes.hidden,.abr-troco-dividido.hidden,.abr-troco-erro.hidden{display:none!important}
+body.abr-v5 #movimentacao .abr-dividir-troco{display:flex;align-items:center;gap:8px;margin:3px 0 6px;font-size:12px;color:#c5d1d4}
+body.abr-v5 #movimentacao .abr-dividir-troco input{height:17px;width:17px;accent-color:#55c99a}
+.abr-troco-dividido{background:#202730;border:1px solid #36434a;border-radius:10px;padding:8px;margin:0 0 7px}
+.abr-troco-duas-colunas{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1fr);gap:8px}
+.abr-troco-duas-colunas>div{min-width:0}
+.abr-troco-segundo-valor{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#b8c7cc;margin-top:5px}
+.abr-troco-segundo-valor strong{font-size:17px;color:#72d7aa}
+.abr-troco-erro{font-size:12px;color:#ffb7a2;margin-top:6px}
+@media(max-width:350px){.abr-troco-duas-colunas{gap:6px}}
