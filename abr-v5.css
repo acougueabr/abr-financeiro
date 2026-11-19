@@ -1,0 +1,62 @@
+/* ABR Financeiro 5 — navegação operacional. Mantém cores, tipografia e lógica anteriores. */
+:root{--abr-bg:#0d0f12;--abr-panel:#181c22;--abr-dim:#aeb5c0;--abr-line:#3f4854;--abr-green:#62d6a2;--abr-red:#ed4554;--abr-orange:#ffbe71}
+body.abr-v5 main{padding-bottom:110px}
+body.abr-v5 main>[data-abr-screen]{display:none!important}
+body.abr-v5 main>[data-abr-screen].abr-show{display:block!important}
+body.abr-v5 main>[data-abr-screen="mais"].abr-show[data-abr-sub]{display:block!important}
+body.abr-v5 #abr-home{display:none}
+body.abr-v5 #abr-home.abr-show{display:block}
+body.abr-v5 main>.top{border-bottom:1px solid #434b56;padding-bottom:14px;position:relative}
+body.abr-v5 .top h1{font-size:clamp(20px,4.5vw,31px)}
+body.abr-v5 .top .brand{font-size:16px}
+body.abr-v5 .top .brand b{font-size:32px}
+body.abr-v5 main>header+#abr-home{margin-top:16px}
+.abr-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.abr-kpi{background:var(--abr-panel);border:1px solid var(--abr-line);border-top:3px solid var(--abr-green);border-radius:13px;padding:14px;min-width:0}
+.abr-kpi.negative{border-top-color:var(--abr-red)}.abr-kpi.neutral{border-top-color:var(--abr-orange)}
+.abr-kpi small{display:block;color:#bfc4cd;font-weight:800;letter-spacing:.25px;font-size:12px;min-height:27px}
+.abr-kpi strong{display:block;font-size:clamp(17px,2.5vw,28px);margin-top:10px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;line-height:1.13}
+.abr-kpi.positive strong{color:var(--abr-green)}.abr-kpi.negative strong{color:var(--abr-red)}.abr-kpi.neutral strong{color:var(--abr-orange)}
+.abr-shortcuts{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:13px 0 17px}
+.abr-shortcuts button{font-size:16px;padding:15px 10px;border-radius:11px}
+.abr-panel{border:1px solid var(--abr-line);background:var(--abr-panel);border-radius:16px;padding:16px;margin-bottom:13px}
+.abr-panel-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}
+.abr-panel-title h2{font-size:17px;margin:0;letter-spacing:.1px}
+.abr-soft{font-size:12px;color:var(--abr-dim)}
+.abr-money-list{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.abr-money{background:#222830;border-radius:11px;padding:12px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.abr-money .abr-money-name{color:#bfc5cd;font-size:13px}
+.abr-money strong{font-size:clamp(17px,2vw,23px);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.abr-helper{color:#c5cbd3;font-size:13px;line-height:1.45;margin-top:10px}
+.abr-mini-details{margin-top:12px;border-top:1px solid #353e49;padding-top:11px}
+.abr-mini-details summary{cursor:pointer;color:#b5dbc7;font-size:13px;font-weight:700}
+.abr-help{color:#bdc4cd;font-size:13px;line-height:1.48}
+.abr-text-button{background:none;color:#67dcb0;border:0;font-size:13px;padding:7px;text-align:right}
+.abr-supplier{border:1px solid #363f4b;border-radius:11px;margin-bottom:9px;background:#20252d;overflow:hidden}
+.abr-supplier summary{cursor:pointer;list-style:none;display:flex;gap:6px;justify-content:space-between;align-items:center;padding:13px 12px}
+.abr-supplier summary::-webkit-details-marker{display:none}.abr-supplier summary:after{content:'⌄';color:#9aa4b1;font-size:18px;margin-left:4px}
+.abr-supplier[open] summary:after{content:'⌃'}
+.abr-supplier .cat{font-weight:800;font-size:15px}.abr-supplier .cat b{display:block;font-size:12px;color:var(--abr-dim);font-weight:400;margin-top:3px}
+.abr-supplier .sum{font-weight:800;color:#ff8c95;text-align:right;white-space:nowrap;font-size:16px}
+.abr-supplier .abr-supplier-body{padding:0 12px 12px}
+.abr-ledger{padding:9px 0;border-bottom:1px solid #39434f}
+.abr-ledger .abr-ledger-main{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;font-size:13px}
+.abr-ledger .abr-ledger-main b{text-align:right;white-space:nowrap}
+.abr-ledger small{display:block;font-size:12px;margin-top:4px;color:#b2b9c4;line-height:1.45}
+.abr-ledger .abr-ok{color:var(--abr-green)}.abr-ledger .abr-due{color:#ff969d}
+.abr-decision{border-radius:11px;padding:12px;background:#2e2724;color:#f3e4d4;font-size:14px;line-height:1.5}
+.abr-decision b{display:block;font-size:19px;margin-top:4px}
+.abr-mini-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+.abr-mini-actions button{font-size:13px;text-align:center;padding:11px 8px}
+.abr-footer-stat{display:flex;justify-content:space-between;gap:12px;color:#aeb5c0;font-size:12px;padding:2px 2px 14px}
+.abr-bottom-nav{position:fixed;bottom:0;left:0;right:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px solid #495361;background:rgba(19,24,30,.97);backdrop-filter:blur(14px);z-index:100;box-shadow:0 -8px 24px #0008;padding:9px max(8px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));gap:2px}
+.abr-bottom-nav button{background:transparent;border:0;border-radius:9px;font-size:11px;color:#b7c0ca;padding:5px 2px;display:flex;align-items:center;flex-direction:column;gap:3px;min-width:0}
+.abr-bottom-nav button span{font-size:25px;line-height:1;min-height:26px}
+.abr-bottom-nav button.active{background:#27322f;color:#70dfac}
+.abr-option-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.abr-option-grid button{font-size:14px}
+.abr-selector{border:1px solid #46515e;background:#181c22;border-radius:14px;padding:15px;margin:15px 0}
+.abr-selector h2{margin:0 0 12px;font-size:18px}
+body.abr-v5 #movimentacao,body.abr-v5 #historicoVendas,body.abr-v5 #fornecedoresSeparados{margin-top:15px}
+.abr-v5 .supplierFoot{max-width:100%}
+.abr-v5 #movimentacao .hint{font-size:12px}
+@media(max-width:650px){body.abr-v5 main{padding:11px 11px 108px}.abr-kpis{gap:6px}.abr-kpi{padding:10px 7px;border-radius:10px}.abr-kpi small{font-size:10px;min-height:29px}.abr-kpi strong{font-size:clamp(14px,4vw,19px);margin-top:7px;letter-spacing:-.5px}.abr-shortcuts button{font-size:14px}.abr-panel{padding:13px}.abr-money{padding:10px}.abr-money strong{font-size:17px}.abr-money .abr-money-name{font-size:12px}.abr-panel-title h2{font-size:15px}.abr-footer-stat{font-size:11px}.abr-supplier .sum{font-size:15px}body.abr-v5 .top{padding:5px 0 12px}body.abr-v5 .top .brand b{font-size:27px}body.abr-v5 .top h1{font-size:21px}.abr-bottom-nav button{font-size:10px}.abr-bottom-nav button span{font-size:23px}}

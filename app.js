@@ -27,7 +27,7 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const productOptions=()=>PRODUCTS.map(p=>`<option value="${p}">${p}</option>`).join('');
 // Informações descritivas sobre as compras consolidadas: NÃO são novos lançamentos.
 // Em especial, 77 + 82 = 159 kg; a diferença do custo bruto é um desconto conjunto de R$ 351,00.
-const SUPPLIER_CATEGORIES=['Carne bovina','Frango','Porco'];
+const SUPPLIER_CATEGORIES=['Carne bovina','Frango','Porco','Toscana','Calabresa'];
 const LEGACY_LOTS={
   c1:{produto:'Carne bovina',quantidade:159,preco:27.50,desconto:351,lotes:[{data:'2026-11-14',quantidade:77},{data:'2026-11-15',quantidade:82}]},
   c2:{produto:'Frango',quantidade:11.65,preco:12.50},
@@ -61,13 +61,14 @@ function initialize(){
     save();
   }
   if(!Array.isArray(state.parcial))state.parcial=[];
+  try { if(!safeStorageGet(KEY+'-antes-v5')) localStorage.setItem(KEY+'-antes-v5', JSON.stringify(state)); } catch {}
   if(!state.fornecedores||typeof state.fornecedores!=='object'||Array.isArray(state.fornecedores))state.fornecedores={};
 }
 const n=r=>round2(r.valor);
 const paid=id=>sum(state.registros.filter(r=>['pagamento','recebimento'].includes(r.tipo)&&r.vinculo===id).map(n));
 const initialSaleReceived=r=>Array.isArray(r.recebimentos)?round2(sum(r.recebimentos.map(p=>p.valor))-Number(r.troco?.valor||0)):0;
 const restante=r=>Math.max(0,round2(n(r)-paid(r.id)-(r.tipo==='venda'?initialSaleReceived(r):0)));
-const isDebt=r=>['compra','despesa'].includes(r.tipo)&&r.status==='pendente';
+const isDebt=r=>['compra','despesa','investimento'].includes(r.tipo)&&r.status==='pendente';
 const isReceivable=r=>['emprestimo','venda'].includes(r.tipo)&&r.status==='pendente';
 function balance(){
   const b={...state.saldos};
@@ -80,7 +81,7 @@ function balance(){
         if(r.troco?.valor)delta(r.troco.conta,-Number(r.troco.valor));
       }else if(r.status==='quitado')delta(r.conta,n(r));
     }else if(r.tipo==='recebimento')delta(r.conta,n(r));
-    else if(r.tipo==='pagamento'||r.tipo==='emprestimo'||(['compra','despesa'].includes(r.tipo)&&r.status==='quitado'))delta(r.conta,-n(r));
+    else if(r.tipo==='pagamento'||r.tipo==='emprestimo'||(['compra','despesa','investimento'].includes(r.tipo)&&r.status==='quitado'))delta(r.conta,-n(r));
     else if(r.tipo==='ajuste')delta(r.conta,n(r));
   }
   return b;
@@ -93,7 +94,7 @@ function render(){
   const cobrar=regs.filter(r=>isReceivable(r)&&restante(r)>0.001);
   const pagar=sum(debts.map(restante)),receber=sum(cobrar.map(restante));
   const saldos=balance(),caixa=sum(Object.values(saldos));
-  const pago=sum(regs.filter(r=>['compra','despesa'].includes(r.tipo)).map(r=>r.status==='quitado'?n(r):paid(r.id)));
+  const pago=sum(regs.filter(r=>['compra','despesa','investimento'].includes(r.tipo)).map(r=>r.status==='quitado'?n(r):paid(r.id)));
   el('faturamento').textContent=money(faturamento);el('totalVendas').textContent='TOTAL '+money(faturamento);
   el('caixa').textContent=el('caixa2').textContent=money(caixa);
   el('pagar').textContent=el('pendente').textContent=money(pagar);
@@ -104,7 +105,7 @@ function render(){
   el('periodo').textContent=`14/11/2026 A ${niceDate(latest)}`;
   el('dias').innerHTML=dates.map(d=>{const v=sum(vendas.filter(r=>r.data===d).map(n));const dt=new Date(d+'T12:00:00');const label=dt.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}).toUpperCase();return `<div class="tile"><small>${label}</small><strong>${money(v)}</strong><button type="button" class="secondary smallBtn" style="margin-top:10px;width:100%" data-view-day="${d}">Ver recebimentos</button>${state.parcial.includes(d)?'<small class="orange">Parcial</small>':''}</div>`}).join('');
   const line=r=>`<div class="entry"><span class="scrollText">${esc(r.descricao)}${r.status==='pendente'?`<br><small class="muted">Restante: ${money(restante(r))}</small>`:''}</span><b>${money(r.status==='pendente'?restante(r):n(r))}</b></div>`;
-  el('listaPagos').innerHTML=regs.filter(r=>['compra','despesa'].includes(r.tipo)&&(r.status==='quitado'||paid(r.id)>0)).map(r=>r.status==='quitado'?line(r):`<div class="entry"><span>${esc(r.descricao)} (parcial)</span><b>${money(paid(r.id))}</b></div>`).join('')||'<small class="muted">Nenhum</small>';
+  el('listaPagos').innerHTML=regs.filter(r=>['compra','despesa','investimento'].includes(r.tipo)&&(r.status==='quitado'||paid(r.id)>0)).map(r=>r.status==='quitado'?line(r):`<div class="entry"><span>${esc(r.descricao)} (parcial)</span><b>${money(paid(r.id))}</b></div>`).join('')||'<small class="muted">Nenhum</small>';
   el('listaPendentes').innerHTML=debts.map(line).join('')||'<small class="muted">Nenhum</small>';
   el('contas').innerHTML=Object.entries(saldos).map(([k,v])=>`<div class="entry"><span class="muted">${esc(k)}</span><b>${money(v)}</b></div>`).join('');
   el('receberLista').innerHTML=cobrar.map(r=>`<div class="entry"><span class="muted scrollText">${esc(r.pessoa||r.descricao)} (${r.tipo==='venda'?'fiado':'empréstimo'})</span><b>${money(restante(r))}</b></div>`).join('')||'<small class="muted">Nenhum</small>';
@@ -169,7 +170,7 @@ function renderSuppliers(saldos){
     const falta=sum(regs.map(r=>r.status==='pendente'?restante(r):0));
     const suficiente=caixa>=falta;
     const situacao=falta<=0.005?'Todas as compras deste fornecedor estão quitadas.':suficiente?`Se pagar somente este fornecedor, sobram <b class="greenText">${money(caixa-falta)}</b> no caixa.`:`Considerando somente o caixa de agora, <b class="red">faltam ${money(falta-caixa)}</b> para quitar este fornecedor.`;
-    return `<article class="supplierCard" data-supplier-category="${esc(cat)}"><h3>${esc(supplierTitle(cat))}</h3><label for="supplier-${esc(cat.replace(/[^a-z]/ig,''))}">Nome do fornecedor (opcional)</label><div class="supplierInput"><input aria-label="Nome: ${esc(supplierTitle(cat))}" class="supplierName" value="${esc(state.fornecedores[cat]||'')}" placeholder="Nome do fornecedor"><button type="button" class="secondary smallBtn saveSupplier" data-save-supplier="${esc(cat)}">Salvar</button></div><div class="supplierTotals"><div><small>COMPRAS TOTAIS</small><strong>${money(total)}</strong></div><div><small>JÁ PAGO</small><strong class="greenText">${money(pago)}</strong></div><div><small>AINDA A PAGAR</small><strong class="red">${money(falta)}</strong></div><div><small>CAIXA ATUAL</small><strong>${money(caixa)}</strong></div></div><div class="supplierDecision">${situacao}</div><button type="button" class="secondary smallBtn" data-buy-supplier="${esc(cat)}" style="margin-top:9px;width:100%">+ Registrar compra de ${esc(cat)}</button><div class="supplierFoot"><strong>HISTÓRICO DE COMPRAS</strong>${regs.length?regs.map(supplierRow).join(''):'<p class="hint">Nenhuma compra registrada.</p>'}</div></article>`;
+    return `<article class="supplierCard" data-supplier-category="${esc(cat)}"><h3>${esc(supplierTitle(cat))}</h3><label for="supplier-${esc(cat.replace(/[^a-z]/ig,''))}">Nome do fornecedor (opcional)</label><div class="supplierInput"><input aria-label="Nome: ${esc(supplierTitle(cat))}" class="supplierName" value="${esc(state.fornecedores[cat]||'')}" placeholder="Nome do fornecedor"><button type="button" class="secondary smallBtn saveSupplier" data-save-supplier="${esc(cat)}">Salvar</button></div><div class="supplierTotals"><div><small>COMPRAS TOTAIS</small><strong>${money(total)}</strong></div><div><small>JÁ PAGO</small><strong class="greenText">${money(pago)}</strong></div><div><small>AINDA A PAGAR</small><strong class="red">${money(falta)}</strong></div><div><small>CAIXA ATUAL</small><strong>${money(caixa)}</strong></div></div><div class="supplierDecision">${situacao}</div><button type="button" class="secondary smallBtn" data-buy-supplier="${esc(cat)}" style="margin-top:9px;width:100%">+ Registrar compra de ${esc(cat)}</button><div class="supplierFoot"><details><summary><strong>HISTÓRICO DE COMPRAS</strong></summary>${regs.length?regs.map(supplierRow).join(''):'<p class="hint">Nenhuma compra registrada.</p>'}</details></div></article>`;
   }).join('');
 }
 function saveSupplierName(cat,value){
@@ -253,13 +254,14 @@ function toggleFormType(){
   el('vendaBox').classList.toggle('hidden',t!=='venda');
   el('compraBox').classList.toggle('hidden',t!=='compra');
   if(t==='compra'&&!el('fornecedorCompra').value)el('fornecedorCompra').value=state.fornecedores[el('produtoCompra').value]||'';
-  el('geralBox').classList.toggle('hidden',!['despesa','emprestimo','recebimento','pagamento','ajuste'].includes(t));
+  el('geralBox').classList.toggle('hidden',!['despesa','investimento','emprestimo','recebimento','pagamento','ajuste'].includes(t));
   el('estoqueBox').classList.toggle('hidden',t!=='estoque');
-  el('statusGeralBox').classList.toggle('hidden',t!=='despesa');
+  el('statusGeralBox').classList.toggle('hidden',!['despesa','investimento'].includes(t));
+  el('categoriaGeralBox').classList.toggle('hidden',!['despesa','investimento'].includes(t));
   el('vinculoBox').classList.toggle('hidden',!['recebimento','pagamento'].includes(t));
-  const titles={despesa:'Despesa do açougue',emprestimo:'Empréstimo concedido',recebimento:'Receber fiado / empréstimo',pagamento:'Pagar fornecedor / despesa',ajuste:'Ajuste de caixa'};
+  const titles={investimento:'Investimento ou equipamento',despesa:'Despesa do açougue',emprestimo:'Empréstimo concedido',recebimento:'Receber fiado / empréstimo',pagamento:'Pagar fornecedor / despesa',ajuste:'Ajuste de caixa'};
   el('tituloGeral').textContent=titles[t]||'Movimentação';
-  const hints={despesa:'Se ficar pendente, não reduz o caixa até registrar o pagamento.',emprestimo:'O dinheiro sai do caixa agora e fica como valor a receber.',recebimento:'Selecione o fiado ou empréstimo original. O valor recebido reduz o saldo a receber.',pagamento:'Selecione a compra ou despesa pendente. O valor pago reduz a dívida e o caixa.',ajuste:'Use valor positivo para entrada e negativo para saída. Descreva o motivo.'};
+  const hints={investimento:'Balanças e equipamentos são investimentos: reduzem o caixa quando pagos, mas não entram automaticamente como despesa operacional do período.',despesa:'Se ficar pendente, não reduz o caixa até registrar o pagamento.',emprestimo:'O dinheiro sai do caixa agora e fica como valor a receber.',recebimento:'Selecione o fiado ou empréstimo original. O valor recebido reduz o saldo a receber.',pagamento:'Selecione a compra ou despesa pendente. O valor pago reduz a dívida e o caixa.',ajuste:'Use valor positivo para entrada e negativo para saída. Descreva o motivo.'};
   el('ajudaGeral').textContent=hints[t]||'';refreshLinks();
 }
 function resetForm(){
@@ -312,7 +314,7 @@ function submitForm(e){
     const disponivel=Number(balance()[conta])||0;
     if(valor>disponivel+0.001&&!confirm(`A conta ${conta} possui ${money(disponivel)}, mas você vai registrar o pagamento de ${money(valor)}. Isso deixará essa conta negativa. Deseja continuar mesmo assim?`))return;
   }
-  return addRecord({...base,descricao,pessoa,valor:round2(valor),conta,status:tipo==='despesa'?el('statusGeral').value:tipo==='emprestimo'?'pendente':'quitado',vinculo});
+  return addRecord({...base,descricao,pessoa,valor:round2(valor),conta,categoria:['despesa','investimento'].includes(tipo)?el('categoriaGeral').value:null,status:['despesa','investimento'].includes(tipo)?el('statusGeral').value:tipo==='emprestimo'?'pendente':'quitado',vinculo});
 }
 
 // Excluir lançamentos novos: as somas e o estoque são derivados dos registros,
@@ -326,8 +328,9 @@ function removeTransaction(id){
   const descricao=String(r.descricao||r.tipo);
   if(!confirm(`EXCLUIR definitivamente esta movimentação?\n\n${niceDate(r.data)} — ${descricao}\nValor: ${money(r.valor)}\n\nO faturamento, caixa, estoque e pendências serão recalculados. Faça backup se quiser conservar uma cópia.`))return;
   const old=state.registros;
+  const idsToRemove = r.grupoTransferencia ? new Set(state.registros.filter(x=>x.grupoTransferencia===r.grupoTransferencia).map(x=>x.id)) : new Set([id]);
   try{localStorage.setItem(KEY+'-antes-exclusao',JSON.stringify(state))}catch{}
-  state.registros=old.filter(x=>x.id!==id);
+  state.registros=old.filter(x=>!idsToRemove.has(x.id));
   if(!save()){state.registros=old;return}
   render();alert('Movimentação excluída e indicadores recalculados.');
 }
@@ -437,7 +440,7 @@ function bind(){
   el('fiadoVenda').onchange=()=>{el('pagamentoVenda').classList.toggle('hidden',el('fiadoVenda').checked);updateSalePreview()};
   el('pagamentoMisto').onchange=()=>{el('segundaForma').classList.toggle('hidden',!el('pagamentoMisto').checked);updateSalePreview()};
   el('contaTroco').onchange=()=>updateSalePreview();
-  for(const i of [1,2])el('metodo'+i).onchange=()=>{el('conta'+i).value=el('metodo'+i).value==='Dinheiro'?'Espécie':'Mercado Pago';updateSalePreview()};
+  for(const i of [1,2])el('metodo'+i).onchange=()=>{el('conta'+i).value=el('metodo'+i).value==='Dinheiro'?'Espécie cédulas':el('metodo'+i).value==='Pix'?'Pix':'Maquininha';updateSalePreview()};
   for(const id of ['qtdCompra','custoCompra','precoVendaCompra','descontoCompra','produtoCompra'])el(id).addEventListener('input',updatePurchasePreview);
   el('form').onsubmit=submitForm;
   el('exportar').onclick=exportJSON;el('csv').onclick=exportCSV;
