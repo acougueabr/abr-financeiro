@@ -1,0 +1,11 @@
+/* Venda rápida: sem peso e sem preço/kg. Os demais formulários seguem intactos. */
+.abr-caixa-explain{color:#d3dadf;font-size:14px;line-height:1.6;background:#1c2f28;border:1px solid #355b49;border-radius:10px;padding:11px 12px;margin:0 0 12px}
+.abr-item-rapido{background:#171c22;border:1px solid #3c4c4d}
+.abr-item-rapido .formgrid{grid-template-columns:1fr 1fr;align-items:end;gap:8px 12px}
+.abr-item-rapido .itemValor{font-size:24px;font-weight:800;border:2px solid #62d6a2;background:#0e1d19;color:#f2fff8;padding:12px}
+.abr-item-rapido .abr-item-opcional{margin-top:10px}
+.abr-item-opcional summary{font-size:12px;color:#abb7be;cursor:pointer}
+.abr-item-opcional input{margin:10px 0 0}
+#vendaBox>.formTotal{border-color:#3a865f}
+#vendaBox>.formTotal strong{font-size:27px}
+@media(max-width:650px){.abr-item-rapido .formgrid{grid-template-columns:1fr}.abr-item-rapido .itemValor{font-size:28px}body.abr-v5 #vendaBox h3{font-size:20px}}

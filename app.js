@@ -139,7 +139,7 @@ function render(){
   const history=[...regs].sort((a,b)=>b.data.localeCompare(a.data)||(b.criadoEm||'').localeCompare(a.criadoEm||''));
   const dateFilter=el('filtroHistoricoData').value,typeFilter=el('filtroHistoricoTipo').value;
   const filteredHistory=history.filter(r=>(!dateFilter||r.data===dateFilter)&&(!typeFilter||r.tipo===typeFilter));
-  el('historico').innerHTML=(recentes?filteredHistory.slice(0,12):filteredHistory).map(r=>{const extra=r.tipo==='venda'&&Array.isArray(r.itens)?`<br><small>${r.itens.map(i=>`${esc(i.produto)} ${fmtQty(i.quantidade,i.unidade)}`).join(' • ')}${r.troco?.valor?` • Troco: ${money(r.troco.valor)} (${esc(r.troco.conta)})`:''}</small>`:r.tipo==='compra'&&r.precoVendaRef?`<br><small>Venda referência: ${money(r.precoVendaRef)}/${esc(r.unidade||'kg')}</small>`:'';
+  el('historico').innerHTML=(recentes?filteredHistory.slice(0,12):filteredHistory).map(r=>{const extra=r.tipo==='venda'&&Array.isArray(r.itens)?`<br><small>${r.itens.map(i=>`${esc(i.produto)}${i.detalhe?' — '+esc(i.detalhe):''}: ${money(i.total)}${Number(i.quantidade)>0?' ('+fmtQty(i.quantidade,i.unidade)+')':''}`).join(' • ')}${r.troco?.valor?` • Troco: ${money(r.troco.valor)} (${esc(r.troco.conta)})`:''}</small>`:r.tipo==='compra'&&r.precoVendaRef?`<br><small>Venda referência: ${money(r.precoVendaRef)}/${esc(r.unidade||'kg')}</small>`:'';
     return `<div class="record"><div class="line"><strong class="scrollText">${esc(r.descricao)}</strong><strong>${r.tipo==='estoque'?fmtQty(r.quantidade,r.unidade):money(n(r))}</strong></div><small>${niceDate(r.data)} • ${esc(r.tipo)} • ${esc(r.status||'')} ${r.legacy?'• Saldo inicial':''} ${r.vinculo?'• vinculado':''}</small>${extra}${r.legacy?'<small class="muted"> • Inicial protegido</small>':`<div class="recordActions"><button type="button" class="secondary smallBtn deleteRecord" data-delete="${esc(r.id)}">Excluir lançamento</button></div>`}</div>`}).join('')||'<p class="hint">Nenhuma movimentação encontrada nesse filtro.</p>';
   refreshLinks();updateDayStatus();renderSpreadsheetHistory();
 }
@@ -213,11 +213,14 @@ function refreshLinks(){
   if(eligible.some(r=>r.id===previous))el('vinculo').value=previous;
 }
 function updateDayStatus(){const d=el('diaFechamento').value||'2026-11-18';el('estadoDia').textContent=`${niceDate(d)}: ${state.parcial.includes(d)?'PARCIAL (ainda aberto)':'FECHADO (sem indicação de parcial)'}.`}
+// No caixa do açougue o valor já vem calculado da balança.
+// O vendedor informa somente o valor efetivamente COBRADO, sem digitar kg ou preço/kg.
+// Compras e ajustes de estoque continuam com peso, como antes.
 function addItem(){
   itemSequence++;
   const id='item'+itemSequence;
-  const box=document.createElement('div');box.className='item';box.dataset.itemId=id;
-  box.innerHTML=`<div class="itemTop"><b>Mercadoria da venda</b><button type="button" class="secondary smallBtn removeItem">Remover</button></div><div class="formgrid"><div><label>Tipo de mercadoria</label><select class="itemProduto">${productOptions()}</select></div><div><label>Corte / detalhe (opcional)</label><input class="itemDetalhe" placeholder="Ex.: Picanha, coxa, linguiça"></div><div><label>Unidade</label><select class="itemUnidade"><option value="kg">Quilos (kg)</option><option value="un">Unidades (un)</option></select></div><div><label>Peso / quantidade</label><input class="itemQtd" type="number" inputmode="decimal" min="0.001" step="0.001" placeholder="Ex.: 1,250"></div><div><label>Preço de venda por kg/un (R$)</label><input class="itemPreco" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0,00"></div><div><label>Subtotal</label><div class="formTotal" style="margin:0"><strong class="itemSubtotal">R$ 0,00</strong></div></div></div>`;
+  const box=document.createElement('div');box.className='item abr-item-rapido';box.dataset.itemId=id;
+  box.innerHTML=`<div class="itemTop"><b>Item da venda</b><button type="button" class="secondary smallBtn removeItem">Remover</button></div><div class="formgrid"><div><label>Mercadoria</label><select class="itemProduto">${productOptions()}</select></div><div><label>Valor que vai cobrar (R$)</label><input class="itemValor" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="Ex.: 38,00" aria-label="Valor cobrado"></div></div><details class="abr-item-opcional"><summary>Informar corte ou detalhe (opcional)</summary><input class="itemDetalhe" placeholder="Ex.: Picanha, coxa, linguiça" aria-label="Detalhe da mercadoria"></details>`;
   el('itensVenda').appendChild(box);
   if(el('itensVenda').children.length===1)box.querySelector('.removeItem').classList.add('hidden');
   return box;
@@ -225,20 +228,28 @@ function addItem(){
 function getItems(){
   return [...el('itensVenda').querySelectorAll('.item')].map(box=>{
     const get=cls=>box.querySelector(cls);
-    const quantidade=Number(get('.itemQtd').value),precoVenda=Number(get('.itemPreco').value);
-    return {produto:get('.itemProduto').value,detalhe:get('.itemDetalhe').value.trim(),unidade:get('.itemUnidade').value,quantidade,precoVenda,total:round2(quantidade*precoVenda)};
+    const valorRaw=get('.itemValor').value;
+    const total=valorRaw===''?NaN:round2(Number(valorRaw));
+    return {produto:get('.itemProduto').value,detalhe:get('.itemDetalhe').value.trim(),unidade:'valor',quantidade:null,precoVenda:null,total};
   });
 }
 function saleTotal(){return sum(getItems().map(i=>i.total))}
 function updateSalePreview(autofill=false){
   const items=getItems();
-  el('itensVenda').querySelectorAll('.item').forEach((box,i)=>box.querySelector('.itemSubtotal').textContent=money(items[i].total));
-  const total=sum(items.map(i=>i.total));el('totalVenda').textContent=money(total);
+  const invalid=items.some(i=>!Number.isFinite(i.total)||i.total<=0);
+  const total=invalid?0:sum(items.map(i=>i.total));el('totalVenda').textContent=money(total);
   if(autofill&&!el('recebido1').dataset.userEdited&&!el('fiadoVenda').checked)el('recebido1').value=total?total.toFixed(2):'';
   const bruto=el('fiadoVenda').checked?0:sum([num('recebido1'),el('pagamentoMisto').checked?num('recebido2'):0]);
   const troco=Math.max(0,round2(bruto-total));const falta=Math.max(0,round2(total-bruto));
-  el('trocoPrevisto').textContent=money(troco);
-  el('situacaoVenda').innerHTML=total<=0?'Informe o peso e o preço dos produtos.':falta>0?`<b class="orange">Fiado / pagamento parcial:</b> ${money(falta)} ficará a receber. Informe o cliente.`:troco>0?`<b class="greenText">Venda recebida:</b> devolver ${money(troco)} de troco por ${esc(el('contaTroco').selectedOptions[0].textContent)}.`:`<b class="greenText">Venda paga:</b> ${money(total)} recebido, sem troco.`;
+  el('trocoPrevisto').textContent=money(total?troco:0);
+  el('situacaoVenda').innerHTML=total<=0?'Digite apenas o valor que vai cobrar. Ex.: balança R$ 38,02, cobrar R$ 38,00.':el('fiadoVenda').checked?`<b class="orange">Venda fiada:</b> ${money(total)} a receber. Informe o cliente.`:falta>0?`<b class="orange">Fiado / pagamento parcial:</b> ${money(falta)} ficará a receber. Informe o cliente.`:troco>0?`<b class="greenText">Venda recebida:</b> devolver ${money(troco)} de troco por ${esc(el('contaTroco').selectedOptions[0].textContent)}.`:`<b class="greenText">Venda paga:</b> ${money(total)} recebido, sem troco.`;
+}
+// Taxa é exclusivamente custo da maquininha; NÃO representa centavos dispensados ao cliente.
+function atualizarCampoTaxa(i){
+  const seletor=el('metodo'+i),taxa=el('taxa'+i);
+  const cartao=['Débito','Crédito à vista','Crédito parcelado'].includes(seletor.value);
+  taxa.parentElement.classList.toggle('hidden',!cartao);
+  if(!cartao)taxa.value='';
 }
 function updatePurchasePreview(){
   const qtd=num('qtdCompra'),custo=num('custoCompra'),venda=num('precoVendaCompra'),desconto=num('descontoCompra');
@@ -268,6 +279,7 @@ function resetForm(){
   el('form').reset();el('data').value=today();el('itensVenda').innerHTML='';addItem();
   delete el('recebido1').dataset.userEdited;
   el('pagamentoVenda').classList.remove('hidden');el('segundaForma').classList.add('hidden');
+  for(const i of [1,2])atualizarCampoTaxa(i);
   el('tipo').value='venda';toggleFormType();updateSalePreview();updatePurchasePreview();
 }
 function addRecord(record){
@@ -280,7 +292,7 @@ function submitForm(e){
   if(!data){alert('Escolha a data da movimentação.');return}
   const base={id:uid(),tipo,data,criadoEm:new Date().toISOString()};
   if(tipo==='venda'){
-    const itens=getItems();if(!itens.length||itens.some(i=>!Number.isFinite(i.quantidade)||i.quantidade<=0||!Number.isFinite(i.precoVenda)||i.precoVenda<=0)){alert('Informe peso/quantidade e preço de venda positivo em todos os produtos.');return}
+    const itens=getItems();if(!itens.length||itens.some(i=>!Number.isFinite(i.total)||i.total<=0)){alert('Informe um valor cobrado maior que zero em cada mercadoria.');return}
     const total=sum(itens.map(i=>i.total));if(total<=0){alert('O valor da venda precisa ser maior que zero.');return}
     const fiado=el('fiadoVenda').checked;
     const entradas=fiado?[]:[{metodo:el('metodo1').value,conta:el('conta1').value,valor:round2(num('recebido1')),taxa:round2(num('taxa1'))},...(el('pagamentoMisto').checked?[{metodo:el('metodo2').value,conta:el('conta2').value,valor:round2(num('recebido2')),taxa:round2(num('taxa2'))}]:[])].filter(p=>p.valor>0);
@@ -423,24 +435,18 @@ function bind(){
   el('importarPlanilha').onclick=()=>el('arquivoPlanilha').click();el('arquivoPlanilha').onchange=importSpreadsheetHistory;
   el('alternarParcial').onclick=()=>{const d=el('diaFechamento').value;if(!d)return;state.parcial=state.parcial.includes(d)?state.parcial.filter(x=>x!==d):[...state.parcial,d];save();render()};
   el('diaFechamento').onchange=updateDayStatus;
-  el('adicionarItem').onclick=()=>{addItem();el('itensVenda').querySelectorAll('.removeItem').forEach(b=>b.classList.remove('hidden'));updateSalePreview()};
+  el('adicionarItem').onclick=()=>{addItem();el('itensVenda').querySelectorAll('.removeItem').forEach(b=>b.classList.remove('hidden'));updateSalePreview(true)};
   el('itensVenda').addEventListener('click',e=>{if(!e.target.classList.contains('removeItem'))return;const items=el('itensVenda').querySelectorAll('.item');if(items.length<=1)return;e.target.closest('.item').remove();if(el('itensVenda').children.length===1)el('itensVenda').querySelector('.removeItem').classList.add('hidden');updateSalePreview(true)});
-  el('itensVenda').addEventListener('input',e=>{if(e.target.matches('.itemQtd,.itemPreco,.itemDetalhe'))updateSalePreview(true)});
-  el('itensVenda').addEventListener('change',e=>{if(e.target.matches('.itemProduto,.itemUnidade')){
-    const box=e.target.closest('.item');const product=box.querySelector('.itemProduto').value;
-    if(product!=='Carne bovina'&&!box.querySelector('.itemPreco').value){
-      const refs=state.registros.filter(r=>r.tipo==='compra'&&r.produto===product&&r.unidade===box.querySelector('.itemUnidade').value&&r.precoVendaRef>0).sort((a,b)=>b.data.localeCompare(a.data));
-      if(refs[0])box.querySelector('.itemPreco').value=refs[0].precoVendaRef;
-    }
-    updateSalePreview(true);
-  }});
+  el('itensVenda').addEventListener('input',e=>{if(e.target.matches('.itemValor,.itemDetalhe'))updateSalePreview(true)});
+  el('itensVenda').addEventListener('change',e=>{if(e.target.matches('.itemProduto'))updateSalePreview(true)});
   el('recebido1').addEventListener('input',()=>{el('recebido1').dataset.userEdited='1';updateSalePreview()});
   el('recebido2').addEventListener('input',()=>updateSalePreview());
   for(const id of ['taxa1','taxa2'])el(id).addEventListener('input',()=>updateSalePreview());
   el('fiadoVenda').onchange=()=>{el('pagamentoVenda').classList.toggle('hidden',el('fiadoVenda').checked);updateSalePreview()};
   el('pagamentoMisto').onchange=()=>{el('segundaForma').classList.toggle('hidden',!el('pagamentoMisto').checked);updateSalePreview()};
   el('contaTroco').onchange=()=>updateSalePreview();
-  for(const i of [1,2])el('metodo'+i).onchange=()=>{el('conta'+i).value=el('metodo'+i).value==='Dinheiro'?'Espécie cédulas':el('metodo'+i).value==='Pix'?'Pix':'Maquininha';updateSalePreview()};
+  for(const i of [1,2])el('metodo'+i).onchange=()=>{el('conta'+i).value=el('metodo'+i).value==='Dinheiro'?'Espécie cédulas':el('metodo'+i).value==='Pix'?'Pix':'Maquininha';atualizarCampoTaxa(i);updateSalePreview()};
+  for(const i of [1,2])atualizarCampoTaxa(i);
   for(const id of ['qtdCompra','custoCompra','precoVendaCompra','descontoCompra','produtoCompra'])el(id).addEventListener('input',updatePurchasePreview);
   el('form').onsubmit=submitForm;
   el('exportar').onclick=exportJSON;el('csv').onclick=exportCSV;
@@ -448,4 +454,4 @@ function bind(){
   toggleFormType();updateSalePreview();updatePurchasePreview();
 }
 initialize();bind();render();
-if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=40').catch(()=>{});
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=52').catch(()=>{});
