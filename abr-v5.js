@@ -82,7 +82,7 @@
     }
     if(!markup)markup='<p class="abr-help">Nenhuma compra cadastrada ainda.</p>';
     const head=`<span class="cat">${esc(cat)}<b>Já pago ${moneyBR(already)}</b></span><span class="sum ${due<0.005?'abr-ok':''}">${moneyBR(due)}</span>`;
-    return `<details class="abr-supplier"><summary>${head}</summary><div class="abr-supplier-body"><div class="abr-row-buttons abr-row-buttons-first"><button type="button" class="secondary smallBtn" data-abr-simulate-cat="${esc(cat)}">Simular este fornecedor</button></div>${markup}<div class="abr-row-buttons"><button type="button" class="secondary smallBtn" data-abr-buy="${esc(cat)}">＋ Nova compra</button></div></div></details>`;
+    return `<details class="abr-supplier"><summary>${head}</summary><div class="abr-supplier-body">${markup}<div class="abr-row-buttons"><button type="button" class="secondary smallBtn" data-abr-buy="${esc(cat)}">＋ Nova compra</button></div></div></details>`;
   }
   function estimateProfit(){
     const sales=state.registros.filter(r=>r.tipo==='venda'&&Array.isArray(r.itens));
@@ -201,12 +201,12 @@
     const holder=$('abr-payment-sources');if(holder.children.length>=4)return;
     const choice=paymentMethods.some(m=>m.conta===conta)?conta:paymentMethods[0].conta;
     const box=document.createElement('div');box.className='abr-payment-source';
-    box.innerHTML=`<div class="abr-pay-source-head"><b>${holder.children.length?'Outra forma':'Forma de pagamento'}</b><button type="button" class="secondary abr-remove-source" aria-label="Remover esta forma de pagamento" ${holder.children.length?'':'hidden'}>×</button></div><input class="abr-pay-method-value" type="hidden" value="${esc(choice)}"><div class="abr-pay-methods" role="group" aria-label="Como pagou ao fornecedor">${paymentMethods.map(m=>`<button type="button" class="abr-pay-chip ${choice===m.conta?'active':''}" data-abr-method="${esc(m.conta)}" aria-pressed="${choice===m.conta}">${m.label}</button>`).join('')}</div><label>Valor pago nesta forma (R$)</label><input type="number" class="abr-pay-amount" inputmode="decimal" step="0.01" min="0.01" placeholder="0,00" value="${Number(valor||0)>0?Number(valor).toFixed(2):''}" aria-label="Valor pago por esta forma">`;
+    box.innerHTML=`<div class="abr-pay-source-head"><b>${holder.children.length?'Outra forma':'Forma 1'}</b><div class="abr-payment-money-entry"><span>R$</span><input type="number" class="abr-pay-amount" inputmode="decimal" step="0.01" min="0.01" placeholder="0,00" value="${Number(valor||0)>0?Number(valor).toFixed(2):''}" aria-label="Valor pago por esta forma"></div><button type="button" class="secondary abr-remove-source" aria-label="Retirar forma" ${holder.children.length?'':'hidden'}>×</button></div><input class="abr-pay-method-value" type="hidden" value="${esc(choice)}"><div class="abr-pay-methods" role="group" aria-label="Como pagou ao fornecedor">${paymentMethods.map(m=>`<button type="button" class="abr-pay-chip ${choice===m.conta?'active':''}" data-abr-method="${esc(m.conta)}" aria-pressed="${choice===m.conta}">${m.label}</button>`).join('')}</div>`;
     holder.appendChild(box);
   }
   function syncPaymentSourcesHead(){
     const boxes=[...$('abr-payment-sources').querySelectorAll('.abr-payment-source')];
-    boxes.forEach((box,i)=>{box.querySelector('.abr-pay-source-head b').textContent=i?'Outra forma':'Forma de pagamento';box.querySelector('.abr-remove-source').hidden=i===0});
+    boxes.forEach((box,i)=>{box.querySelector('.abr-pay-source-head b').textContent='Forma '+(i+1);box.querySelector('.abr-remove-source').hidden=i===0});
     $('abr-payment-add-source').hidden=boxes.length>=4;
   }
   function openPayment({id,cat,mode}){
@@ -215,8 +215,8 @@
     const total=id?restante(purchase):sum(currentPendingByCat(cat).map(restante));
     if(total<=0.005){alert('Não há pendência para simular.');return}
     const sim=mode==='simulate';paymentContext={id:id||null,cat:cat||null,mode};
-    $('abr-payment-title').textContent=sim?'SIMULAR PAGAMENTO':'CONFIRMAR PAGAMENTO';
-    $('abr-payment-subtitle').textContent=id?`${purchase.id==='c3'&&purchase.legacy?'17/11/2026':niceDate(purchase.data)} • ${purchase.descricao}`:`Fornecedor: ${cat}`;
+    $('abr-payment-title').textContent=sim?'SIMULAR ESTA COMPRA':'CONFIRMAR PAGAMENTO';
+    $('abr-payment-subtitle').textContent=id?`${purchase.id==='c3'&&purchase.legacy?'17/11/2026':niceDate(purchase.data)} • ${purchase.descricao} • Pendente: ${moneyBR(total)}`:`Fornecedor: ${cat}`;
     $('abr-payment-amount').value=total.toFixed(2);
     $('abr-payment-amount').max=String(total);
     $('abr-payment-date').value=today();
@@ -231,36 +231,40 @@
   }
   function paintPaymentPreview(){
     if(!paymentContext)return;
-    const amount=round2(Number($('abr-payment-amount').value)),f=dashboardFinancial();
-    const max=paymentContext.id?restante(state.registros.find(r=>r.id===paymentContext.id)):
-      sum(currentPendingByCat(paymentContext.cat).map(restante));
+    // Um único lançamento é consultado; nunca usa a dívida total da loja para validar.
+    const purchase=paymentContext.id?state.registros.find(r=>r.id===paymentContext.id):null;
+    const max=purchase?restante(purchase):sum(currentPendingByCat(paymentContext.cat).map(restante));
+    const amount=round2(Number($('abr-payment-amount').value));
     const isValid=Number.isFinite(amount)&&amount>0&&amount<=max+0.001;
+    if(paymentContext.mode==='simulate'){
+      $('abr-payment-results').hidden=false;
+      $('abr-payment-results').innerHTML=`<div class="abr-mini-sim"><span>Valor pendente ${paymentContext.id?'desta compra':'deste fornecedor'}</span><b>${moneyBR(max)}</b></div>`+
+        `<div class="abr-mini-sim"><span>Depois deste pagamento</span><b>${moneyBR(round2(max-Math.min(Math.max(amount||0,0),max)))}</b></div>`+
+        (!isValid?'<p class="abr-payment-error">Informe um valor válido até o saldo pendente.</p>':'');
+      $('abr-payment-remaining').textContent='';
+      $('abr-payment-confirm').disabled=true;return;
+    }
+    $('abr-payment-results').hidden=true;
+    $('abr-payment-results').innerHTML='';
     const parts=paymentParts();
-    const allocated=sum(parts.map(p=>p.valor));
-    const gap=round2(amount-allocated);
-    const partsValid=parts.length>0&&parts.every(p=>p.conta&&Number.isFinite(p.valor)&&p.valor>0)&&
-      new Set(parts.map(p=>p.conta)).size===parts.length&&Math.abs(gap)<.005;
-    const availAfter=round2(f.available-(isValid?amount:0));
-    const debtAfter=round2(f.debt-(isValid?amount:0));
-    let content=`<div class="abr-sim-row"><span>Quanto tenho depois</span><b class="${availAfter<0?'abr-warning':'greenText'}">${moneyBR(availAfter)}</b></div>`+
-      `<div class="abr-sim-row"><span>Contas a pagar depois</span><b>${moneyBR(debtAfter)}</b></div>`;
-    if(paymentContext.mode==='confirm'){
-      const balances=availableBalances();
-      content+=parts.filter(p=>p.conta&&p.valor>0).map(p=>{
-        const saldo=round2(Number(balances[p.conta]||0)-p.valor);
-        const nome=paymentMethods.find(m=>m.conta===p.conta)?.label||p.conta;
-        return `<div class="abr-sim-row"><span>${esc(nome)} depois</span><b class="${saldo<0?'abr-warning':'greenText'}">${saldo<0?'Saldo a conferir':moneyBR(saldo)}</b></div>`;
-      }).join('');
-      $('abr-payment-remaining').innerHTML=partsValid?'<span class="greenText">✓ Pagamento distribuído corretamente</span>':
-        `<span class="abr-warning">${gap>0?'Falta informar':'Excedeu o valor pago em'} ${moneyBR(Math.abs(gap))}${parts.length>1&&new Set(parts.map(p=>p.conta)).size!==parts.length?' · Selecione formas diferentes':''}</span>`;
-    }else $('abr-payment-remaining').textContent='';
-    content+=`<div class="abr-sim-highlight"><span>${availAfter>=debtAfter?'SOBRA DE CAIXA':'FALTA PRA QUITAR'}</span><strong>${moneyBR(Math.abs(round2(availAfter-debtAfter)))}</strong></div>`;
-    if(!isValid)content+='<p class="abr-warning">Informe um valor válido, até o saldo pendente.</p>';
-    $('abr-payment-results').innerHTML=content;
+    const allocated=round2(sum(parts.map(p=>p.valor)));
+    const difference=round2(amount-allocated);
+    const repeated=parts.length>1&&new Set(parts.map(p=>p.conta)).size!==parts.length;
+    const partsValid=parts.length>0&&parts.every(p=>p.conta&&Number.isFinite(p.valor)&&p.valor>0)&&!repeated&&Math.abs(difference)<0.005;
+    const notice=$('abr-payment-remaining');
+    if(!Number.isFinite(amount)||amount<=0)notice.textContent='Informe quanto pagou.';
+    else if(amount>max+0.001)notice.textContent='Acima do valor pendente desta compra: '+moneyBR(max)+'.';
+    else if(repeated)notice.textContent='Escolha formas diferentes.';
+    else if(allocated>amount+0.005)notice.textContent='Excedeu em '+moneyBR(allocated-amount)+'.';
+    else if(allocated<amount-0.005)notice.textContent='Faltam '+moneyBR(amount-allocated)+'.';
+    else if(parts.some(p=>!Number.isFinite(p.valor)||p.valor<=0))notice.textContent='Informe o valor de cada forma.';
+    else notice.textContent='';
+    notice.classList.toggle('abr-payment-has-error',!!notice.textContent);
     $('abr-payment-confirm').disabled=!isValid||!partsValid||paymentContext.mode!=='confirm';
   }
+  let paymentSaving=false;
   function confirmPayment(){
-    if(!paymentContext||paymentContext.mode!=='confirm'||!paymentContext.id)return;
+    if(paymentSaving||!paymentContext||paymentContext.mode!=='confirm'||!paymentContext.id)return;
     const parent=state.registros.find(r=>r.id===paymentContext.id);
     if(!parent||!isDebt(parent)||restante(parent)<=0.005){alert('Esta dívida já foi quitada.');closePayment();render();return}
     const amount=round2(Number($('abr-payment-amount').value)),parts=paymentParts();
@@ -275,13 +279,14 @@
     const details=parts.map(p=>`${paymentMethods.find(m=>m.conta===p.conta)?.label||p.conta}: ${moneyBR(p.valor)}`).join('\n');
     const question=`Registrar pagamento de ${moneyBR(amount)} em ${niceDate(paidDate)}?\n${parent.descricao}\n\n${details}\n\nA dívida será reduzida e o valor sairá das formas informadas no caixa acumulado.`;
     if(!confirm(question))return;
+    paymentSaving=true;
     const old=state.registros.slice(),group=uid(),timestamp=new Date().toISOString();
     parts.forEach((p,i)=>state.registros.push({id:uid(),tipo:'pagamento',data:paidDate,criadoEm:timestamp,
       descricao:`Pagamento — ${parent.descricao}${parts.length>1?' (parte '+(i+1)+')':''}`,
       pessoa:parent.pessoa||'',valor:p.valor,conta:p.conta,status:'quitado',vinculo:parent.id,
-      grupoTransferencia:group,origem:'pagamento-livre-v59'}));
-    if(!save()){state.registros=old;alert('Não foi possível salvar. Nenhum pagamento foi confirmado.');return}
-    closePayment();render();showSaveToast('Pagamento registrado');
+      grupoTransferencia:group,origem:'pagamento-compra-v510'}));
+    if(!save()){state.registros=old;paymentSaving=false;alert('Não foi possível salvar. Nenhum pagamento foi confirmado.');return}
+    paymentSaving=false;closePayment();render();showSaveToast('Pagamento desta compra registrado');
   }
   function closePayment(){const d=$('abr-payment-dialog');if(d.open){if(typeof d.close==='function')d.close();else d.removeAttribute('open')}paymentContext=null}
   function paintEvolution(){
@@ -381,7 +386,19 @@
   $('abr-payment-close').onclick=closePayment;
   $('abr-payment-cancel').onclick=closePayment;
   $('abr-payment-dialog').addEventListener('cancel',()=>{paymentContext=null});
-  $('abr-payment-amount').addEventListener('input',paintPaymentPreview);
+  let previousMainPaymentValue=0;
+  $('abr-payment-amount').addEventListener('focus',()=>{previousMainPaymentValue=Number($('abr-payment-amount').value||0)});
+  $('abr-payment-amount').addEventListener('input',()=>{
+    const boxes=$('abr-payment-sources').querySelectorAll('.abr-payment-source');
+    if(boxes.length===1){
+      const field=boxes[0].querySelector('.abr-pay-amount');
+      if(Math.abs(Number(field.value||0)-previousMainPaymentValue)<0.005){
+        field.value=$('abr-payment-amount').value;
+      }
+    }
+    previousMainPaymentValue=Number($('abr-payment-amount').value||0);
+    paintPaymentPreview();
+  });
   $('abr-payment-sources').addEventListener('input',paintPaymentPreview);
   $('abr-payment-sources').addEventListener('change',paintPaymentPreview);
   $('abr-payment-sources').addEventListener('click',e=>{

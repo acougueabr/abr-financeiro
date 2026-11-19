@@ -377,3 +377,40 @@ body.abr-v5 #movimentacao #salvarMov:focus-visible{outline:3px solid #94ddf1;out
 .abr-home-payables .abr-text-button{color:#ff929b}
 #abr-payment-confirm{background:#b43c49;border-color:#df6c76;color:#fff}
 #abr-payment-confirm:disabled{opacity:.5}
+
+/* V6.0: confirmação de UMA compra, com visão limpa e compacta. */
+.abr-payment-dialog{width:min(94vw,440px);max-height:min(88dvh,720px);padding:13px 14px;border-radius:14px;overflow-y:auto;overscroll-behavior:contain}
+.abr-payment-head{margin-bottom:9px;gap:6px}
+.abr-payment-head h2{font-size:16px;line-height:1.2;margin:0 0 4px}
+.abr-payment-head p{font-size:11px;line-height:1.35;margin:0;max-width:350px}
+.abr-payment-head #abr-payment-close{min-width:27px;width:27px;min-height:27px;height:27px;padding:0}
+.abr-pay-base{grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px}
+.abr-pay-base label{font-size:11px;line-height:1.3;margin:0 0 3px}
+.abr-pay-base input{font-size:15px!important;min-height:39px;height:39px;padding:7px 8px}
+.abr-payment-method-head{font-size:12px;margin:7px 0 5px}
+.abr-payment-sources{gap:6px;margin:0 0 5px}
+.abr-payment-source{padding:7px;border-radius:9px;display:block;background:#202731}
+.abr-pay-source-head{display:grid;grid-template-columns:1fr minmax(85px,124px) 25px;gap:7px;align-items:center;font-size:11px;margin:0 0 6px;min-height:34px}
+.abr-pay-source-head b{font-size:11px}
+.abr-payment-money-entry{display:flex;align-items:center;background:#121820;border:1px solid #515d6b;border-radius:7px;max-height:35px;overflow:hidden}
+.abr-payment-money-entry span{font-size:11px;color:#aab6c3;padding:0 0 0 7px}
+.abr-payment-source .abr-pay-amount{font-size:15px!important;padding:5px 6px;border:0;min-height:34px;height:34px;background:transparent;color:#fff;text-align:right;appearance:textfield}
+.abr-payment-source .abr-pay-amount:focus{outline:1px solid #64d3b0;outline-offset:-1px}
+.abr-pay-source-head button{min-width:25px;width:25px;min-height:25px;height:25px;padding:0;font-size:14px}
+.abr-pay-methods{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+.abr-pay-chip{font-size:11px!important;min-height:32px;height:32px;padding:5px 1px;border-radius:7px}
+.abr-payment-dialog .abr-add-source{font-size:11px;padding:7px 10px;min-height:31px;height:31px}
+.abr-payment-remaining{min-height:0;padding:0;font-size:11px}
+.abr-payment-remaining:empty{display:none}
+.abr-payment-remaining.abr-payment-has-error{color:#ffc06e;padding:5px 0 0}
+.abr-payment-dialog #abr-payment-results[hidden]{display:none!important}
+.abr-payment-results{margin:6px 0 0;padding:8px;background:#222933;border-radius:8px}
+.abr-mini-sim{display:flex;justify-content:space-between;font-size:11px;gap:8px;padding:4px 0}
+.abr-mini-sim b{color:#6fdeb4}
+.abr-payment-actions{gap:7px;margin-top:8px}
+.abr-payment-actions button{font-size:12px;min-height:39px;height:39px;padding:7px}
+@media(max-width:430px){.abr-payment-dialog{width:calc(100vw - 22px);padding:11px}.abr-pay-methods{grid-template-columns:repeat(4,minmax(0,1fr))}.abr-pay-chip{font-size:10px!important;padding:5px 0}.abr-pay-base{gap:5px}}
+
+/* Campos numéricos limpos na janela de pagamento. */
+.abr-payment-dialog input[type=number]::-webkit-inner-spin-button,.abr-payment-dialog input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.abr-payment-dialog input[type=number]{-moz-appearance:textfield;appearance:textfield}
