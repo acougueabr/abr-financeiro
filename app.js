@@ -47,7 +47,7 @@ const supplierCategory=r=>{
   return null;
 };
 const supplierTitle=p=>({'Carne bovina':'FORNECEDOR DA CARNE','Frango':'FORNECEDOR DO FRANGO','Porco':'FORNECEDOR DO PORCO'})[p]||p;
-let state, recentes=false, itemSequence=0;
+let state, recentes=true, itemSequence=0;
 function safeStorageGet(key){try{return localStorage.getItem(key)}catch{return null}}
 function save(){try{const antes=safeStorageGet(KEY);localStorage.setItem(KEY,JSON.stringify(state));if(window.ABRCloud&&typeof window.ABRCloud.localSaved==='function')window.ABRCloud.localSaved(antes,state);return true}catch(e){el('armazenamentoAviso').textContent='Falha ao salvar os dados no aparelho. Libere espaço e faça um backup. '+e.message;el('armazenamentoAviso').classList.remove('hidden');return false}}
 function initialize(){
@@ -139,7 +139,8 @@ function render(){
   const history=[...regs].sort((a,b)=>b.data.localeCompare(a.data)||(b.criadoEm||'').localeCompare(a.criadoEm||''));
   const dateFilter=el('filtroHistoricoData').value,typeFilter=el('filtroHistoricoTipo').value;
   const filteredHistory=history.filter(r=>(!dateFilter||r.data===dateFilter)&&(!typeFilter||r.tipo===typeFilter));
-  el('historico').innerHTML=(recentes?filteredHistory.slice(0,12):filteredHistory).map(r=>{const extra=r.tipo==='venda'&&Array.isArray(r.itens)?`<br><small>${r.itens.map(i=>`${esc(i.produto)}${i.detalhe?' — '+esc(i.detalhe):''}: ${money(i.total)}${Number(i.quantidade)>0?' ('+fmtQty(i.quantidade,i.unidade)+')':''}`).join(' • ')}${r.troco?.valor?` • Troco: ${money(r.troco.valor)} (${esc(r.troco.conta)})`:''}</small>`:r.tipo==='compra'&&r.precoVendaRef?`<br><small>Venda referência: ${money(r.precoVendaRef)}/${esc(r.unidade||'kg')}</small>`:'';
+  el('filtroBtn').textContent=recentes?'Ver todos':'Ver só recentes';
+  el('historico').innerHTML=(recentes?filteredHistory.slice(0,8):filteredHistory).map(r=>{const extra=r.tipo==='venda'&&Array.isArray(r.itens)?`<br><small>${r.itens.map(i=>`${esc(i.produto)}${i.detalhe?' — '+esc(i.detalhe):''}: ${money(i.total)}${Number(i.quantidade)>0?' ('+fmtQty(i.quantidade,i.unidade)+')':''}`).join(' • ')}${r.troco?.valor?` • Troco: ${money(r.troco.valor)} (${esc(r.troco.conta)})`:''}</small>`:r.tipo==='compra'&&r.precoVendaRef?`<br><small>Venda referência: ${money(r.precoVendaRef)}/${esc(r.unidade||'kg')}</small>`:'';
     return `<div class="record"><div class="line"><strong class="scrollText">${esc(r.descricao)}</strong><strong>${r.tipo==='estoque'?fmtQty(r.quantidade,r.unidade):money(n(r))}</strong></div><small>${niceDate(r.data)} • ${esc(r.tipo)} • ${esc(r.status||'')} ${r.legacy?'• Saldo inicial':''} ${r.vinculo?'• vinculado':''}</small>${extra}${r.legacy?'<small class="muted"> • Inicial protegido</small>':`<div class="recordActions"><button type="button" class="secondary smallBtn deleteRecord" data-delete="${esc(r.id)}">Excluir lançamento</button></div>`}</div>`}).join('')||'<p class="hint">Nenhuma movimentação encontrada nesse filtro.</p>';
   refreshLinks();updateDayStatus();renderSpreadsheetHistory();
 }
@@ -243,8 +244,24 @@ function updateSalePreview(autofill=false){
   const troco=Math.max(0,round2(bruto-total));const falta=Math.max(0,round2(total-bruto));
   el('trocoPrevisto').textContent=money(total?troco:0);
   el('situacaoVenda').innerHTML=total<=0?'Digite apenas o valor que vai cobrar. Ex.: balança R$ 38,02, cobrar R$ 38,00.':el('fiadoVenda').checked?`<b class="orange">Venda fiada:</b> ${money(total)} a receber. Informe o cliente.`:falta>0?`<b class="orange">Fiado / pagamento parcial:</b> ${money(falta)} ficará a receber. Informe o cliente.`:troco>0?`<b class="greenText">Venda recebida:</b> devolver ${money(troco)} de troco por ${esc(el('contaTroco').selectedOptions[0].textContent)}.`:`<b class="greenText">Venda paga:</b> ${money(total)} recebido, sem troco.`;
+  renderAccountPreview(total,bruto,troco);
 }
 // Taxa é exclusivamente custo da maquininha; NÃO representa centavos dispensados ao cliente.
+// Prévia imediata: cada conta recebe ou devolve exatamente o valor lançado.
+function renderAccountPreview(total,bruto,troco){
+  const target=el('abr-previa-contas');if(!target)return;
+  if(total<=0){target.innerHTML='';return}
+  if(el('fiadoVenda').checked){target.innerHTML='<span class="abr-help">Fiado: o caixa não muda até receber o pagamento.</span>';return}
+  const diff=new Map();
+  const put=(account,amount)=>{if(!account||!amount)return;diff.set(account,round2((diff.get(account)||0)+amount))};
+  for(const i of (el('pagamentoMisto').checked?[1,2]:[1])){
+    const amount=num('recebido'+i);if(amount<=0)continue;
+    put(el('conta'+i).value,round2(amount-num('taxa'+i)));
+  }
+  if(troco>0)put(el('contaTroco').value,-troco);
+  const rows=[...diff.entries()].filter(([,v])=>Math.abs(v)>0.005);
+  target.innerHTML=`<b>O que muda no seu caixa ao salvar:</b><div class="abr-previa-list">${rows.map(([name,amount])=>`<div><span>${esc(name==='Espécie cédulas'?'Cédulas':name==='Espécie moedas'?'Moedas':name)}</span><strong class="${amount<0?'red':'greenText'}">${amount>0?'+':''}${money(amount)}</strong></div>`).join('')||'Nenhuma movimentação em conta'}</div>`;
+}
 function atualizarCampoTaxa(i){
   const seletor=el('metodo'+i),taxa=el('taxa'+i);
   const cartao=['Débito','Crédito à vista','Crédito parcelado'].includes(seletor.value);
@@ -348,24 +365,37 @@ function removeTransaction(id){
 }
 function renderDailyMethods(){
   const date=el('dataRelatorio').value||today();
-  const categories=['Dinheiro','Pix','Débito','Crédito à vista','Crédito parcelado'];
-  const by={};for(const m of categories)by[m]={bruto:0,troco:0,taxa:0};
-  const put=(name,key,value)=>{if(!by[name])by[name]={bruto:0,troco:0,taxa:0};by[name][key]=round2(by[name][key]+(Number(value)||0))};
+  // Exibir a conta REAL escolhida no cadastro. Não atribuir troco de moedas ao Pix.
+  const accounts=['Espécie cédulas','Espécie moedas','Pix','Maquininha'];
+  const names={'Espécie cédulas':'Cédulas','Espécie moedas':'Moedas','Pix':'Pix','Maquininha':'Maquininha'};
+  const flows=new Map();
+  const put=(name,key,value)=>{if(!name)return;if(!flows.has(name))flows.set(name,{entrada:0,troco:0,taxa:0});const item=flows.get(name);item[key]=round2(item[key]+(Number(value)||0))};
   let totalVendas=0,count=0,semDetalhe=0;
   for(const r of state.registros.filter(r=>r.tipo==='venda'&&r.data===date&&!r.semFaturamento)){
     totalVendas=round2(totalVendas+Number(r.valor||0));count++;
     if(!Array.isArray(r.recebimentos)){semDetalhe=round2(semDetalhe+Number(r.valor||0));continue}
-    for(const p of r.recebimentos){put(p.metodo||'Não informado','bruto',p.valor);put(p.metodo||'Não informado','taxa',p.taxa)}
-    if(r.troco?.valor){const target=r.troco.conta==='Espécie'?'Dinheiro':'Pix';put(target,'troco',r.troco.valor)}
+    for(const p of r.recebimentos){put(p.conta||'Não identificado','entrada',p.valor);put(p.conta||'Não identificado','taxa',p.taxa)}
+    if(r.troco?.valor)put(r.troco.conta||'Não identificado','troco',r.troco.valor);
   }
-  const rows=Object.entries(by).map(([name,v])=>`<div class="reportCard"><small>${esc(name)}</small><strong class="greenText">${money(round2(v.bruto-v.troco-v.taxa))}</strong><div class="sub">Bruto ${money(v.bruto)} • Troco ${money(v.troco)} • Taxa ${money(v.taxa)}</div></div>`).join('');
+  const show=(name)=>{const v=flows.get(name)||{entrada:0,troco:0,taxa:0},liquido=round2(v.entrada-v.troco-v.taxa);
+    const signo=liquido<0?'red':'greenText';
+    return `<div class="abr-day-account"><span>${esc(names[name]||name)}</span><strong class="${signo}">${money(liquido)}</strong><small>Entrada ${money(v.entrada)}${v.troco?' · Troco −'+money(v.troco):''}${v.taxa?' · Taxa −'+money(v.taxa):''}</small></div>`;};
+  const others=[...flows.keys()].filter(name=>!accounts.includes(name));
+  const gross=sum([...flows.values()].map(v=>v.entrada));
+  const change=sum([...flows.values()].map(v=>v.troco));
+  const fees=sum([...flows.values()].map(v=>v.taxa));
+  const received=round2(gross-change-fees);
   let privateHtml='';const imported=(state.historicoPlanilha||[]).filter(r=>r.data===date);
   if(imported.length){
     const fields=[['notas','Dinheiro recebido'],['pix','Pix recebido'],['debito','Débito'],['credito','Crédito'],['cartaoAnterior','Cartão anterior'],['trocoDinheiro','Troco dinheiro'],['trocoPix','Troco Pix'],['fiado','Fiado informado']];
-    privateHtml=`<details class="detailsWrap"><summary>Ver recebimentos da planilha (${imported.length} vendas) — conferência</summary><div class="content"><p class="hint">Estes valores vieram das colunas históricas da planilha. Não são somados novamente ao caixa; campos não preenchidos ou classificações antigas podem divergir do painel.</p><div class="reportGrid">${fields.map(([key,title])=>`<div class="reportCard"><small>${title}</small><strong>${money(sum(imported.map(r=>r[key])))}</strong></div>`).join('')}</div></div></details>`;
+    privateHtml=`<details class="detailsWrap"><summary>Ver conferência da planilha (${imported.length} vendas)</summary><div class="content"><p class="hint">Dados históricos apenas para conferência; não são somados novamente ao caixa.</p><div class="reportGrid">${fields.map(([key,title])=>`<div class="reportCard"><small>${title}</small><strong>${money(sum(imported.map(r=>r[key])))}</strong></div>`).join('')}</div></div></details>`;
   }
-  el('resumoPagamentoDia').innerHTML=`<div class="summaryline"><b>${niceDate(date)} • ${count} lançamento(s)</b><b>Faturamento ${money(totalVendas)}</b></div>${semDetalhe?`<div class="notice">${money(semDetalhe)} desse dia pertence a vendas consolidadas sem método discriminado. Não é possível atribuir esses valores a Pix, dinheiro ou cartões sem conferência.</div>`:''}<div class="reportGrid">${rows}</div>${privateHtml}`;
+  el('resumoPagamentoDia').innerHTML=`<div class="summaryline"><b>${niceDate(date)} · ${count} venda(s)</b><b>Vendido ${money(totalVendas)}</b></div>`+
+    `<div class="abr-day-accounts">${accounts.map(show).join('')}${others.length?`<details class="abr-other-day"><summary>Outras contas (${others.length})</summary>${others.map(show).join('')}</details>`:''}</div>`+
+    `<div class="abr-day-total">Entrou líquido nas contas pelas vendas: <b>${money(received)}</b></div>`+
+    (semDetalhe?`<p class="abr-help">${money(semDetalhe)} de vendas consolidadas sem divisão por conta; não atribuído a nenhuma conta.</p>`:'')+privateHtml;
 }
+
 function renderSpreadsheetHistory(){
   const box=el('historicoPlanilha');if(!box)return;
   const rows=Array.isArray(state.historicoPlanilha)?state.historicoPlanilha:[];
@@ -429,7 +459,7 @@ function bind(){
   el('toggle').onclick=()=>el('form').classList.toggle('hidden');
   el('tipo').onchange=toggleFormType;
   el('filtroBtn').onclick=()=>{recentes=!recentes;render()};
-  el('filtroHistoricoData').onchange=render;el('filtroHistoricoTipo').onchange=render;el('limparHistoricoFiltro').onclick=()=>{el('filtroHistoricoData').value='';el('filtroHistoricoTipo').value='';recentes=false;render()};
+  el('filtroHistoricoData').onchange=render;el('filtroHistoricoTipo').onchange=render;el('limparHistoricoFiltro').onclick=()=>{el('filtroHistoricoData').value='';el('filtroHistoricoTipo').value='';recentes=true;render()};
   el('historicoPlanilha').addEventListener('click',e=>{const b=e.target.closest('[data-private-delete]');if(b)removePrivateHistory(Number(b.dataset.privateDelete))});
   el('historico').addEventListener('click',e=>{const b=e.target.closest('[data-delete]');if(b)removeTransaction(b.dataset.delete)});
   el('importarPlanilha').onclick=()=>el('arquivoPlanilha').click();el('arquivoPlanilha').onchange=importSpreadsheetHistory;
@@ -442,9 +472,10 @@ function bind(){
   el('recebido1').addEventListener('input',()=>{el('recebido1').dataset.userEdited='1';updateSalePreview()});
   el('recebido2').addEventListener('input',()=>updateSalePreview());
   for(const id of ['taxa1','taxa2'])el(id).addEventListener('input',()=>updateSalePreview());
-  el('fiadoVenda').onchange=()=>{el('pagamentoVenda').classList.toggle('hidden',el('fiadoVenda').checked);updateSalePreview()};
+  el('fiadoVenda').onchange=()=>{el('pagamentoVenda').classList.toggle('hidden',el('fiadoVenda').checked);if(el('fiadoVenda').checked)el('abr-venda-extras').open=true;updateSalePreview()};
   el('pagamentoMisto').onchange=()=>{el('segundaForma').classList.toggle('hidden',!el('pagamentoMisto').checked);updateSalePreview()};
   el('contaTroco').onchange=()=>updateSalePreview();
+  for(const id of ['conta1','conta2'])el(id).onchange=updateSalePreview;
   for(const i of [1,2])el('metodo'+i).onchange=()=>{el('conta'+i).value=el('metodo'+i).value==='Dinheiro'?'Espécie cédulas':el('metodo'+i).value==='Pix'?'Pix':'Maquininha';atualizarCampoTaxa(i);updateSalePreview()};
   for(const i of [1,2])atualizarCampoTaxa(i);
   for(const id of ['qtdCompra','custoCompra','precoVendaCompra','descontoCompra','produtoCompra'])el(id).addEventListener('input',updatePurchasePreview);
@@ -454,4 +485,4 @@ function bind(){
   toggleFormType();updateSalePreview();updatePurchasePreview();
 }
 initialize();bind();render();
-if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=52').catch(()=>{});
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=53').catch(()=>{});

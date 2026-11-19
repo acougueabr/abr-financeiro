@@ -1,12 +1,25 @@
-ABR FINANCEIRO V4.0 — MESMO LINK, VISUAL E DADOS DA V3.1.
+ABR FINANCEIRO 5.3 — CAIXA POR CONTA / VENDA MAIS PRÁTICA
 
-Para configurar a nuvem, leia 2-LEIA-PRIMEIRO.txt e execute
-1-EXECUTAR-NO-SUPABASE.sql (arquivos FORA da pasta site).
+Atualizar SOMENTE estes cinco arquivos na RAIZ do repositório acougueabr/abr-financeiro:
+  index.html, app.js, abr-v5.js, abr-v5.css e sw.js
 
-Antes de atualizar, exporte backup JSON no NOTEBOOK e no IPHONE separadamente.
-Não envie backups JSON, dados de clientes, e-mails/senhas ou chaves secretas ao GitHub.
-O único arquivo a editar antes do upload é config.js, com Project URL + publishable key.
+Não excluir nem substituir config.js, cloud.js, abr-dia.js, abr-dia.css,
+abr-caixa.css, manifest.webmanifest ou arquivos de imagens.
+A atualização não edita dados armazenados nem altera a URL.
 
-O app preserva a chave localStorage abr-financeiro-v1 e toda a interface financeira atual.
-A nuvem, quando conectada, envia mudanças individuais e exclusões dos lançamentos.
-Se ficar sem internet, os registros locais aguardam a próxima sincronização.
+O QUE MUDOU:
+- Na tela REGISTRAR, os saldos de Cédulas, Moedas, Pix e Maquininha aparecem imediatamente.
+- A prévia da venda mostra onde entra dinheiro e de qual conta sai o troco.
+- Histórico apresenta somente os registros mais recentes inicialmente; botão Ver todos revela os demais.
+- Caixa por dia agora é movimentação POR CONTA: troco em moedas sai de moedas, não do Pix.
+- O saldo antigo não classificado continua separado; NÃO é atribuído automaticamente a cédulas/moedas.
+- Compra de mercadoria e sincronização existentes são preservadas.
+
+IMPORTANTE: Se havia R$ 50 recebidos em cédulas e R$ 12 de moedas de troco,
+a movimentação é Cédulas +R$ 50 e Moedas -R$ 12, faturamento +R$ 38.
+A movimentação é diferente do saldo disponível em cada conta. Para saber
+o SALDO real, o saldo de abertura deve ter sido classificado corretamente.
+
+Antes de atualizar, idealmente exporte backup. Não limpe dados do iPhone.
+Após publicar, abra o site no notebook usando Ctrl+F5 e depois no iPhone;
+se aparecer versão antiga, feche/reabra o app ou atualize no Safari.

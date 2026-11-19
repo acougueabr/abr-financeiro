@@ -110,9 +110,15 @@
     const bal=availableBalances();
     const categories=[['Espécie cédulas','Cédulas'],['Espécie moedas','Moedas'],['Pix','Pix'],['Maquininha','Maquininha']];
     $('abr-home-composicao').innerHTML=categories.map(([k,title])=>`<div class="abr-money"><span class="abr-money-name">${title}</span><strong>${moneyBR(bal[k]||0)}</strong></div>`).join('');
+    const registerGrid=$('abr-reg-composicao');
+    if(registerGrid)registerGrid.innerHTML=categories.map(([k,title])=>`<div class="abr-money"><span class="abr-money-name">${title}</span><strong class="${Number(bal[k]||0)<0?'red':''}">${moneyBR(bal[k]||0)}</strong></div>`).join('');
+    if($('abr-reg-total'))$('abr-reg-total').textContent=moneyBR(sum(Object.values(bal)));
+
     const other=Object.entries(bal).filter(([k,v])=>!categories.some(([cat])=>cat===k)&&Math.abs(Number(v))>0.005);
     const otherTotal=sum(other.map(([,v])=>v));
     $('abr-home-naoclassificado').innerHTML=other.length?`<b class="orange">Ainda sem separação: ${moneyBR(otherTotal)}</b><br>${other.map(([k,v])=>`${esc(k)}: ${moneyBR(v)}`).join(' • ')}. Use “Organizar” para classificar sem aumentar o caixa.`:'<span class="greenText">Todo o saldo foi distribuído entre os quatro grupos.</span>';
+    if($('abr-reg-naoclassificado'))$('abr-reg-naoclassificado').innerHTML=other.length?`<span class="abr-soft">Também há ${moneyBR(otherTotal)} em contas antigas ainda sem separação. <button type="button" class="abr-text-button" id="abr-reg-organizar">Organizar no Início</button></span>`:'';
+    if($('abr-reg-organizar'))$('abr-reg-organizar').onclick=()=>{goto('inicio');const d=$('abr-home-organizar');if(d)d.open=true;};
     $('abr-transfer-from').innerHTML=Object.entries(bal).filter(([k,v])=>Number(v)>0.005).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} — ${moneyBR(v)}</option>`).join('');
     const prior=$('abr-transfer-to').value;
     $('abr-transfer-to').innerHTML=categories.map(([k,title])=>`<option value="${k}">${title}</option>`).join('');

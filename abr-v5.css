@@ -60,3 +60,35 @@ body.abr-v5 #movimentacao,body.abr-v5 #historicoVendas,body.abr-v5 #fornecedores
 .abr-v5 .supplierFoot{max-width:100%}
 .abr-v5 #movimentacao .hint{font-size:12px}
 @media(max-width:650px){body.abr-v5 main{padding:11px 11px 108px}.abr-kpis{gap:6px}.abr-kpi{padding:10px 7px;border-radius:10px}.abr-kpi small{font-size:10px;min-height:29px}.abr-kpi strong{font-size:clamp(14px,4vw,19px);margin-top:7px;letter-spacing:-.5px}.abr-shortcuts button{font-size:14px}.abr-panel{padding:13px}.abr-money{padding:10px}.abr-money strong{font-size:17px}.abr-money .abr-money-name{font-size:12px}.abr-panel-title h2{font-size:15px}.abr-footer-stat{font-size:11px}.abr-supplier .sum{font-size:15px}body.abr-v5 .top{padding:5px 0 12px}body.abr-v5 .top .brand b{font-size:27px}body.abr-v5 .top h1{font-size:21px}.abr-bottom-nav button{font-size:10px}.abr-bottom-nav button span{font-size:23px}}
+
+/* V5.3: saldo por conta durante a venda; poupa rolagem. */
+.abr-reg-resumo{margin-top:13px;margin-bottom:5px;padding:13px}
+.abr-reg-resumo .abr-panel-title{margin-bottom:9px}
+.abr-reg-resumo .abr-panel-title h2{font-size:15px}
+.abr-reg-resumo .abr-money-list{grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.abr-reg-resumo .abr-money{padding:9px;gap:5px;background:#242b32}
+.abr-reg-resumo .abr-money .abr-money-name{font-size:12px}
+.abr-reg-resumo .abr-money strong{font-size:clamp(14px,1.8vw,20px)}
+.abr-resumo-soma{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #39434d;margin-top:10px;padding-top:10px;font-size:13px}
+.abr-resumo-soma strong{color:#69dda9;font-size:19px}
+.abr-reg-extras{margin-top:7px}
+.abr-sale-extra{border-top:1px solid #39424c;padding:10px 0;margin-top:8px}
+.abr-sale-extra summary{color:#b8c0ca;cursor:pointer;font-size:13px}
+.abr-previa-contas{border:1px solid #2e6651;background:#18352a;border-radius:10px;padding:11px;margin-top:10px;font-size:13px}
+.abr-previa-contas:empty{display:none}
+.abr-previa-list{display:grid;gap:5px;margin-top:8px}
+.abr-previa-list>div{display:flex;justify-content:space-between;gap:10px;border-top:1px solid #2c5344;padding-top:6px}
+.abr-day-accounts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.abr-day-account{background:#232932;border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:5px;min-width:0}
+.abr-day-account span{color:#bfc9d1;font-size:12px}
+.abr-day-account strong{font-size:clamp(17px,2.2vw,23px)}
+.abr-day-account small{color:#9eabb7;font-size:11px;line-height:1.4}
+.abr-other-day{grid-column:1/-1}
+.abr-other-day summary{font-size:12px;color:#9dbdae;cursor:pointer}
+.abr-other-day .abr-day-account{margin-top:7px}
+.abr-day-total{margin-top:10px;display:flex;justify-content:space-between;gap:8px;border-top:1px solid #4a515a;padding:12px 0 3px;font-size:13px}
+.abr-day-total b{color:#74dfab;font-size:16px}
+@media(max-width:650px){.abr-reg-resumo .abr-money-list{grid-template-columns:1fr 1fr}.abr-reg-resumo .abr-money strong{font-size:20px}body.abr-v5 #movimentacao .paymentLine{grid-template-columns:1fr 1fr}body.abr-v5 #vendaBox>.abr-caixa-explain{font-size:12px;padding:7px 9px}}
+
+.abr-private-fold>summary{cursor:pointer;font-weight:700;font-size:15px;color:#c4cbd3}
+.abr-private-fold[open]>summary{margin-bottom:10px}
