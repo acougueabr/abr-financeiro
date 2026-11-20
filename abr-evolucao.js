@@ -1,4 +1,4 @@
-/* ABR Financeiro 6.6.0 — compras e vendas acumuladas, sem alterar os dados. */
+/* ABR Financeiro 6.6.3 — custos confirmados, aves por lote e datas corretas. */
 'use strict';
 (()=>{
   const START='2026-11-14';
@@ -17,14 +17,87 @@
   };
   let period='all',selected=null;
   const add=(map,date,value)=>map.set(date,(map.get(date)||0)+cents(value));
+  const cleanText=value=>esc(String(value??''));
+  const qtyText=(amount,unit)=>{
+    if(amount===null||amount===undefined||amount==='')return '';
+    const num=Number(amount);
+    if(!Number.isFinite(num)||num<=0)return '';
+    return num.toLocaleString('pt-BR',{maximumFractionDigits:3})+' '+(unit==='un'?'unidades':unit||'kg');
+  };
+  // Nomes específicos apenas para os lotes efetivamente identificados.
+  // Compras futuras usam o nome e o detalhe que forem cadastrados.
+  const purchaseTitle=(r,info)=>{
+    if(r.id==='c3'&&r.legacy)return '3ª banda de boi';
+    if(r.id==='c1'&&r.legacy)return 'Banda de boi';
+    if(r.id==='70ad7b7e-8d7d-4711-a7c9-b270a4de6cdc'&&Number(r.quantidade)===89)return '4ª banda de boi';
+    const product=String(info.produto||r.produto||r.descricao||'Mercadoria');
+    const description=String(r.descricao||'').trim();
+    const detail=String(r.detalhe||'').trim();
+    if(detail)return product+' — '+detail;
+    if(description.startsWith(product+' — '))return description;
+    return product;
+  };
+  // Correção histórica confirmada pelo açougue em 20/11/2026.
+  // 1ª banda: 14/11 (77 kg) e 2ª: 15/11 (82 kg) já estão em LEGACY_LOTS.c1.
+  // A 3ª e a 4ª tinham sido lançadas com data 18/11 por engano.
+  // Corrigimos SOMENTE esses dois registros exatos, inclusive no histórico de
+  // fornecedores. Valores, pagamentos, vínculos e empréstimos não são tocados.
+  function correctConfirmedBandDates(){
+    const fixes=[
+      {id:'c3',old:'2026-11-18',date:'2026-11-17',value:2475,quantity:null},
+      {id:'70ad7b7e-8d7d-4711-a7c9-b270a4de6cdc',old:'2026-11-18',date:'2026-11-19',value:2492,quantity:89}
+    ];
+    const changes=[];
+    for(const fix of fixes){
+      const r=(state.registros||[]).find(r=>r&&r.id===fix.id);
+      if(!r||r.tipo!=='compra'||r.data!==fix.old||Math.abs(Number(r.valor)-fix.value)>0.005)continue;
+      if(fix.quantity!==null&&Number(r.quantidade)!==fix.quantity)continue;
+      changes.push({r,previousDate:r.data,previousAudit:r.dataAnteriorCorrecao});
+      r.dataAnteriorCorrecao=r.data;
+      r.data=fix.date;
+    }
+    if(!changes.length)return false;
+    if(typeof save!=='function'||!save()){
+      for(const c of changes){
+        c.r.data=c.previousDate;
+        if(c.previousAudit===undefined)delete c.r.dataAnteriorCorrecao;
+        else c.r.dataAnteriorCorrecao=c.previousAudit;
+      }
+      return false;
+    }
+    return true;
+  }
+  // A quarta banda foi confirmada em R$ 28,50/kg, 89 kg = R$ 2.536,50.
+  // Migração estritamente condicionada ao registro antigo exato, sem mexer
+  // em pagamentos, transferências, empréstimos ou registros de vendas.
+  function correctConfirmedPurchaseCosts(){
+    const r=(state.registros||[]).find(x=>x&&x.id==='70ad7b7e-8d7d-4711-a7c9-b270a4de6cdc');
+    if(!r||r.tipo!=='compra'||Number(r.quantidade)!==89||
+       Math.abs(Number(r.valor)-2492)>.005||Math.abs(Number(r.preco)-28)>.005||
+       !['2026-11-18','2026-11-19'].includes(r.data))return false;
+    const before={valor:r.valor,preco:r.preco,data:r.data,ajusteCusto:r.ajusteCusto};
+    r.valor=2536.50;r.preco=28.50;
+    r.ajusteCusto='20/11/2026: preço da 4ª banda confirmado R$ 28,50/kg; valor anterior R$ 2.492,00';
+    if(typeof save!=='function'||!save()){
+      r.valor=before.valor;r.preco=before.preco;r.data=before.data;
+      if(before.ajusteCusto===undefined)delete r.ajusteCusto;else r.ajusteCusto=before.ajusteCusto;
+      return false;
+    }
+    return true;
+  }
   function sourceData(){
-    const purchases=new Map(),sales=new Map(),counts=new Map(),legacy=new Set();
+    const purchases=new Map(),purchaseDetails=new Map(),sales=new Map(),counts=new Map(),legacy=new Set();
+    const addPurchase=(date,value,item)=>{
+      add(purchases,date,value);
+      if(!purchaseDetails.has(date))purchaseDetails.set(date,[]);
+      purchaseDetails.get(date).push({...item,value:cents(value)});
+    };
     const all=state.registros||[];
     for(const r of all){
       if(!r||typeof r.data!=='string'||r.data<START)continue;
       if(r.tipo==='compra'){
-        // Lançamento c1 contém DUAS bandas (14 e 15/11). Rateio proporcional
-        // ao peso, com arredondamento e fechamento exato do valor do registro.
+        // c1 reúne duas bandas de dias diferentes. Dividimos o valor somente
+        // para a visualização; não alteramos o lançamento nem duplicamos compra.
         const lot=typeof LEGACY_LOTS!=='undefined'&&r.legacy&&r.id==='c1'?LEGACY_LOTS.c1:null;
         if(lot&&Array.isArray(lot.lotes)&&lot.lotes.length){
           const totalCents=cents(r.valor),totalWeight=lot.lotes.reduce((s,x)=>s+Number(x.quantidade||0),0);
@@ -32,9 +105,20 @@
           lot.lotes.forEach((item,i)=>{
             const share=i===lot.lotes.length-1?totalCents-allocated:Math.round(totalCents*Number(item.quantidade||0)/totalWeight);
             allocated+=share;
-            purchases.set(item.data,(purchases.get(item.data)||0)+share);
+            addPurchase(item.data,share/100,{name:(i===0?'1ª':'2ª')+' banda de boi',quantity:item.quantidade,unit:'kg',shared:true});
           });
-        }else add(purchases,r.data,r.valor);
+        }else{
+          const info=typeof supplierInfo==='function'?supplierInfo(r):r;
+          addPurchase(r.data,r.valor,{
+            name:purchaseTitle(r,info),
+            quantity:info.quantidade??r.quantidade??null,
+            unit:info.unidade||r.unidade||'kg',
+            // O número de aves não pode ser deduzido do peso em kg.
+            detail:String(r.detalhe||'').trim(),
+            birds:r.legacy&&['c2','c4','c5'].includes(r.id)?5:null,
+            shared:false
+          });
+        }
       }else if(r.tipo==='venda'&&!r.semFaturamento){
         add(sales,r.data,r.valor);
         if(r.legacy)legacy.add(r.data);
@@ -50,7 +134,7 @@
     const rows=dates.map(date=>{
       const dayBuy=purchases.get(date)||0,daySell=sales.get(date)||0;
       buy+=dayBuy;sell+=daySell;
-      return {date,dayBuy,daySell,buy,sell,count:counts.get(date)||0,legacy:legacy.has(date)};
+      return {date,dayBuy,daySell,buy,sell,count:counts.get(date)||0,legacy:legacy.has(date),items:purchaseDetails.get(date)||[]};
     });
     return rows;
   }
@@ -108,9 +192,19 @@
     const day=rows.find(r=>r.date===selected)||rows.at(-1);
     if(!day)return;
     const count=day.count>0?`${day.count} venda${day.count===1?'':'s'} identificada${day.count===1?'':'s'}`:day.legacy?'Vendas consolidadas':'Nenhuma venda identificada';
+    const items=[...(day.items||[])].sort((a,b)=>String(a.name).localeCompare(String(b.name),'pt-BR',{numeric:true}));
+    const detail=items.length?items.map(item=>{
+      const qty=qtyText(item.quantity,item.unit);
+      const shownQty=item.birds?`${item.birds} frangos${qty?' — '+qty:''}`:qty;
+      return `<div class="abr-business-item"><div class="abr-business-item-info"><b>${cleanText(item.name)}</b>${shownQty?`<small>${cleanText(shownQty)}</small>`:''}</div><strong>${BR(fromCents(item.value))}</strong></div>`;
+    }).join(''):'<p class="abr-business-empty">Nenhuma compra de mercadoria registrada neste dia.</p>';
+    const shared=items.some(item=>item.shared);
+    const twoBandsSameDay=items.some(item=>item.name==='3ª banda de boi')&&items.some(item=>item.name==='4ª banda de boi');
     $('abr-business-day').innerHTML=`<div class="abr-business-day-title"><b>${short(day.date)} • ${new Date(day.date+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long'})}</b><small>${count}</small></div>
       <div class="abr-business-day-value buy"><span>Compras nesse dia</span><strong>${BR(fromCents(day.dayBuy))}</strong></div>
-      <div class="abr-business-day-value sell"><span>Vendas nesse dia</span><strong>${BR(fromCents(day.daySell))}</strong></div>`;
+      <div class="abr-business-day-value sell"><span>Vendas nesse dia</span><strong>${BR(fromCents(day.daySell))}</strong></div>
+      <div class="abr-business-purchases"><div class="abr-business-purchases-head"><b>O QUE COMPRAMOS NESTE DIA</b><small>${items.length} ${items.length===1?'item':'itens'}</small></div>
+      ${detail}${shared?'<p class="abr-business-purchase-note">Valor da banda distribuído proporcionalmente ao peso. As duas primeiras bandas foram pagas juntas.</p>':''}${twoBandsSameDay?'<p class="abr-business-purchase-alert">Atenção: as 3ª e 4ª bandas aparecem na mesma data porque assim foram cadastradas. Confira o dia real de cada compra.</p>':''}</div>`;
   }
   function paint(){
     const rows=sourceData();if(!rows.length)return;
@@ -155,6 +249,10 @@
   let resizeTimer;
   window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(paint,140)});
   const previousRender=render;
-  render=function(){previousRender();paint()};
+  render=function(){correctConfirmedBandDates();correctConfirmedPurchaseCosts();previousRender();paint()};
+  // Na abertura, a tela já deve refletir as datas corrigidas.
+  const dateChanged=correctConfirmedBandDates();
+  const costChanged=correctConfirmedPurchaseCosts();
+  if(dateChanged||costChanged)previousRender();
   paint();
 })();

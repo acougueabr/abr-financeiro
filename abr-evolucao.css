@@ -1,4 +1,4 @@
-/* ABR Financeiro 6.6.0 — painel de compras x vendas, somente leitura. */
+/* ABR Financeiro 6.6.1 — painel de compras x vendas e compras detalhadas por dia. */
 .abr-business-chart{margin-top:14px;padding:17px 17px 14px;background:#10161c;border-color:#42505e}
 .abr-business-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .abr-business-head h2{margin:0;font-size:19px;font-weight:850;letter-spacing:.2px}
@@ -38,6 +38,20 @@
 .abr-business-day-value span{font-size:10px;color:#bdcad5}
 .abr-business-day-value strong{font-size:15px}
 .abr-business-day-value.buy strong{color:#ff8290}.abr-business-day-value.sell strong{color:#67e4b6}
+.abr-business-purchases{grid-column:1/-1;border-top:1px solid #384956;margin-top:3px;padding-top:11px;min-width:0}
+.abr-business-purchases-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.abr-business-purchases-head b{font-size:11px;letter-spacing:.4px;color:#e8eff5}
+.abr-business-purchases-head small{font-size:11px;color:#a7b9c7}
+.abr-business-item{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 0;border-top:1px solid #2e3c49}
+.abr-business-item:first-of-type{border-top:0}
+.abr-business-item-info{display:flex;flex-direction:column;gap:3px;min-width:0}
+.abr-business-item-info b{font-size:13px;font-weight:750;color:#eaf1f6;overflow-wrap:anywhere}
+.abr-business-item-info small{font-size:12px;color:#b6c6d1}
+.abr-business-item>strong{font-size:13px;color:#ff8c98;white-space:nowrap}
+.abr-business-empty{margin:9px 0 3px;font-size:12px;color:#aebbc6}
+.abr-business-purchase-note{font-size:11px;line-height:1.5;color:#aebac6;margin:8px 0 0}
+.abr-business-purchase-alert{font-size:11px;line-height:1.5;color:#f5c782;background:#302a22;border-left:2px solid #f5b451;border-radius:4px;padding:8px 9px;margin:8px 0 0}
+
 .abr-business-warning{font-size:12px;line-height:1.55;color:#aebcc8;margin:12px 0 4px}
 .abr-business-warning b{color:#e3eaf0}
 .abr-business-method{margin-top:10px;border-top:1px solid #33414e;padding-top:9px;font-size:12px;color:#aab8c4;line-height:1.65}
