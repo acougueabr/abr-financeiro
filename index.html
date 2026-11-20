@@ -46,6 +46,49 @@
 
 /* V4.0: sincronização usando mesmo tema, sem interferir nos cartões do painel */
 .cloudPanel{border-color:#445e55}.cloudSelo{padding:5px 9px;border:1px solid #7b8692;border-radius:8px;font-size:11px;font-weight:800;letter-spacing:.5px}.cloudSelo.active{border-color:#59cb98;color:#63dca5}.cloudChoices{display:grid;grid-template-columns:1fr;gap:9px;margin:12px 0}.cloudChoices button{text-align:left}.cloudStatus{background:#203328;border:1px solid #3e7257;border-radius:11px;padding:12px;font-weight:bold;line-height:1.4}.cloudPanel .notice{margin-top:12px}.cloudAccess input{max-width:100%}
+
+/* v6.6.4 — fornecedores enxutos e extrato externo sem dados privados */
+.abr-suppliers-page{background:#10151b;border-color:#344654;padding:18px}
+.abr-suppliers-heading{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:19px}
+.abr-suppliers-heading h2{font-size:22px;margin:0 0 6px}.abr-suppliers-heading p{font-size:13px;color:#b2beca;margin:0;line-height:1.5}
+.abr-suppliers-private{font-size:10px;letter-spacing:.8px;color:#9fb2c2;border:1px solid #40505d;border-radius:7px;padding:6px 8px;white-space:nowrap}
+.abr-suppliers-page .supplierGrid{display:grid;grid-template-columns:1fr;gap:10px}
+.abr-supplier-card{background:#1b232d;border:1px solid #3d4c5b;border-radius:13px;padding:15px;min-width:0}
+.abr-supplier-main{display:flex;justify-content:space-between;align-items:center;gap:14px}
+.abr-supplier-identity{min-width:0}.abr-supplier-identity small{display:block;color:#93a5b6;font-size:10px;letter-spacing:.8px;margin-bottom:6px}
+.abr-supplier-identity h3{font-size:20px;line-height:1.15;margin:0;overflow-wrap:anywhere}
+.abr-supplier-balance{text-align:right;flex:none}.abr-supplier-balance small{display:block;color:#acb9c5;font-size:10px;letter-spacing:.3px;margin-bottom:4px}
+.abr-supplier-balance strong{font-size:22px;white-space:nowrap}
+.abr-supplier-subtotals{display:flex;flex-wrap:wrap;gap:7px 22px;margin-top:12px;font-size:12px;color:#b3c0cd}
+.abr-supplier-subtotals b{color:#e5ebf0;font-weight:700}
+.abr-supplier-actions{margin-top:13px;display:flex;justify-content:flex-start}
+.abr-supplier-actions button{background:#223b37;color:#74e2bb;border:1px solid #377b69;padding:10px 13px;font-size:13px}
+.abr-supplier-actions button:hover{background:#285145}
+.abr-supplier-more{border-top:1px solid #36434f;margin-top:13px;padding-top:9px}
+.abr-supplier-more>summary{color:#d8e3ed;cursor:pointer;font-size:13px;font-weight:700;list-style:none;display:flex;align-items:center;gap:7px;padding:5px 0}
+.abr-supplier-more>summary::before{content:'▸';color:#63dbac}.abr-supplier-more[open]>summary::before{content:'▾'}
+.abr-supplier-more-body{margin-top:8px;padding-top:7px;border-top:1px solid #36434f}
+.abr-supplier-detail-label{font-size:12px;color:#9fb2c2;margin:4px 0}
+.abr-supplier-edit{margin-top:15px;padding-top:12px;border-top:1px solid #36434f}.abr-supplier-edit label{margin:0 0 6px}
+.abr-supplier-add{margin-top:7px}.abr-suppliers-help{color:#9daab8;font-size:12px;line-height:1.5;margin:15px 0 0}
+.abr-supplier-statement-dialog{width:min(760px,calc(100vw - 22px));max-height:90vh;overflow:auto;border:1px solid #53616d;border-radius:15px;background:#121820;color:#f5f5f5;padding:16px}
+.abr-supplier-statement-dialog::backdrop{background:rgba(0,0,0,.83)}
+.abr-statement-modal-top{display:flex;align-items:center;justify-content:space-between;gap:10px}.abr-statement-modal-top small{color:#9db1c1;font-size:10px;letter-spacing:.8px}
+.abr-statement-modal-top h2{margin:5px 0;font-size:21px}.abr-statement-modal-top button{padding:9px 12px}
+.abr-statement-privacy{font-size:12px;color:#8de0bf;line-height:1.4;margin:6px 0 12px}
+.abr-statement-content{background:#fff;color:#121212;border-radius:7px;padding:22px;font-size:13px}
+.abr-statement-content .abr-statement-brand{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:3px solid #d13c48;padding-bottom:11px}
+.abr-statement-brand span{font-size:13px;font-weight:800}.abr-statement-brand b{font-size:24px}.abr-statement-brand small{font-size:10px;letter-spacing:.5px}
+.abr-statement-content h2{font-size:22px;margin:18px 0 3px}.abr-statement-subtitle{color:#666;margin:0 0 16px}
+.abr-statement-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:15px 0}
+.abr-statement-summary div{padding:9px;border:1px solid #ddd;border-radius:5px}.abr-statement-summary small{display:block;color:#666;font-size:10px;margin-bottom:5px}.abr-statement-summary b{font-size:16px}
+.abr-statement-content h3{font-size:15px;margin:19px 0 7px}.abr-statement-content table{border-collapse:collapse;width:100%;font-size:12px}
+.abr-statement-content th,.abr-statement-content td{padding:8px 5px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}
+.abr-statement-content th{background:#f5f5f5}.abr-statement-content td:first-child{white-space:nowrap}
+.abr-statement-money{text-align:right!important;white-space:nowrap}.abr-statement-disclaimer{color:#666;font-size:10px;line-height:1.5;margin-top:20px}
+.abr-statement-modal-actions{position:sticky;bottom:-16px;background:#121820;padding:12px 0 3px;display:flex;justify-content:flex-end;gap:9px;margin-top:12px;flex-wrap:wrap;z-index:2}
+.abr-statement-modal-actions button{font-size:13px}
+@media(max-width:600px){.abr-suppliers-page{padding:13px}.abr-suppliers-heading{gap:8px}.abr-supplier-card{padding:13px}.abr-supplier-identity h3{font-size:17px}.abr-supplier-balance strong{font-size:19px}.abr-supplier-subtotals{gap:5px 12px}.abr-statement-content{padding:12px}.abr-statement-content th,.abr-statement-content td{font-size:10px;padding:7px 3px}.abr-statement-summary b{font-size:13px}.abr-statement-brand small{font-size:9px}}
 </style>
 <link href="abr-v5.css?v=640" rel="stylesheet"/><link href="abr-dia.css" rel="stylesheet"/><link href="abr-caixa.css" rel="stylesheet"/><link href="abr-vendas.css?v=652" rel="stylesheet"/><link href="abr-evolucao.css?v=662" rel="stylesheet"/></head>
 <body><svg class="abr-icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" width="0" height="0">
@@ -60,7 +103,7 @@
 <symbol id="abr-ico-cash" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M5 8h1m12 8h1"/></symbol>
 <symbol id="abr-ico-coins" viewBox="0 0 24 24"><ellipse cx="9" cy="7" rx="6" ry="3"/><path d="M3 7v9c0 2 12 2 12 0V7M3 10c0 3 12 3 12 0M3 13c0 3 12 3 12 0"/><path d="M15 11c3-1 6 0 6 2v6c0 2-5 3-8 1M15 16c3 1 6 0 6-1"/></symbol>
 </svg><main>
-<header class="top abr-premium-header"><div class="brand">AÇOUGUE<br/><b>ABR</b></div><div class="abr-header-title"><h1>ABR FINANCEIRO</h1><p class="muted" id="periodo">14/11/2026 EM DIANTE</p><span class="version">VERSÃO 6.6.3 • COMPRAS CONFERIDAS</span><span class="abr-sim-indicator" id="abr-sim-indicator" hidden>SIMULAÇÃO</span></div><nav class="abr-top-nav" aria-label="Menu principal"><button type="button" data-abr-go="inicio" class="active"><span>▥</span>Resumo</button><button type="button" data-abr-go="registrar"><span>＋</span>Lançamentos</button><button type="button" data-abr-go="vendasdia"><span>▣</span>Vendas</button><button type="button" data-abr-go="pendencias"><span>▤</span>Fornecedores</button><button type="button" data-abr-open-receivable="1"><span>♧</span>A receber</button><button type="button" data-abr-go="mais"><span>⚙</span>Config.</button></nav></header><section aria-label="Início do financeiro" class="abr-screen-home" id="abr-home">
+<header class="top abr-premium-header"><div class="brand">AÇOUGUE<br/><b>ABR</b></div><div class="abr-header-title"><h1>ABR FINANCEIRO</h1><p class="muted" id="periodo">14/11/2026 EM DIANTE</p><span class="version">VERSÃO 6.6.4 • FORNECEDORES SIMPLES</span><span class="abr-sim-indicator" id="abr-sim-indicator" hidden>SIMULAÇÃO</span></div><nav class="abr-top-nav" aria-label="Menu principal"><button type="button" data-abr-go="inicio" class="active"><span>▥</span>Resumo</button><button type="button" data-abr-go="registrar"><span>＋</span>Lançamentos</button><button type="button" data-abr-go="vendasdia"><span>▣</span>Vendas</button><button type="button" data-abr-go="pendencias"><span>▤</span>Fornecedores</button><button type="button" data-abr-go="mais"><span>⚙</span>Config.</button></nav></header><section aria-label="Início do financeiro" class="abr-screen-home" id="abr-home">
 <div class="abr-kpis" aria-label="Resumo financeiro e simulação de recebimentos">
 <button type="button" class="abr-kpi abr-kpi-action positive" data-abr-card-action="accounts" aria-label="Quanto tenho; detalhar saldos"><span class="abr-kpi-icon"><svg><use href="#abr-ico-wallet"/></svg></span><span class="abr-kpi-copy"><small>QUANTO TENHO</small><strong id="abr-home-caixa">—</strong></span></button>
 <button type="button" class="abr-kpi abr-kpi-action negative" data-abr-card-action="payables" aria-label="Contas a pagar; ver fornecedores"><span class="abr-kpi-icon"><svg><use href="#abr-ico-bill"/></svg></span><span class="abr-kpi-copy"><small>CONTAS A PAGAR</small><strong id="abr-home-debitos">—</strong></span></button>
@@ -137,8 +180,8 @@
 <section class="panel" data-abr-screen="historico" id="resumoDiario"><div class="sectionHead"><h2>MOVIMENTAÇÃO DO DIA POR CONTA</h2></div><label for="dataRelatorio">Escolha o dia</label><input id="dataRelatorio" type="date"/><div id="resumoPagamentoDia" style="margin-top:12px"></div><p class="hint">Aqui vemos entradas e saídas das vendas daquele dia. O saldo disponível agora aparece no Início e em Registrar.</p></section>
 <section class="panel" data-abr-report="1" data-abr-screen="mais" data-abr-sub="relatorios"><div class="sectionHead"><h2>RECEBIMENTOS POR FORMA</h2><span class="muted">VENDAS DETALHADAS</span></div><div class="stockgrid" id="pagamentosPorForma"></div><div class="total" style="margin-top:12px"><span>RECEBIDO LÍQUIDO (MENOS TROCO)</span><span class="greenText" id="recebidoLiquidoDetalhado"></span></div><p class="hint" id="trocosDetalhados"></p><p class="hint">Aqui aparecem os recebimentos brutos das novas vendas discriminados por Dinheiro, Pix, Débito e Crédito. O troco e as taxas informadas são descontados do total líquido. Não inclui recebimentos posteriores de fiados nem os consolidados antigos.</p></section>
 <section class="panel" data-abr-report="1" data-abr-screen="mais" data-abr-sub="relatorios"><div class="sectionHead"><h2>FORNECEDORES</h2><span class="muted">BOVINO • FRANGO • PORCO • OUTROS</span></div><div class="cols"><div class="tile"><h3 class="greenText">JÁ PAGO <span id="pago" style="float:right"></span></h3><div id="listaPagos"></div></div><div class="tile"><h3 class="red">A PAGAR <span id="pendente" style="float:right"></span></h3><div id="listaPendentes"></div></div></div></section>
-<section class="panel" data-abr-screen="pendencias" id="fornecedoresSeparados"><div class="sectionHead"><h2>FORNECEDORES POR MERCADORIA</h2><span class="muted">CARNE • FRANGO • PORCO</span></div><p class="hint">Cada fornecedor tem seu histórico de entregas e pagamentos. O saldo de caixa é o mesmo nas três simulações: elas não devem ser somadas.</p><div class="supplierGrid" id="painelFornecedores"></div><p class="hint">O lote bovino já pago de 159 kg foi separado visualmente em duas entregas de 77 kg (14/11) e 82 kg (15/11), sem gerar compras novas. Os descontos de R$ 76,00 e R$ 275,00 permanecem juntos porque não há informação sobre a distribuição por dia. A terceira banda permanece em 18/11 conforme o fechamento inicial; uma compra em 17/11 só aparecerá se for cadastrada.</p></section>
-<div class="cols" data-abr-screen="pendencias"><section class="panel"><h2>CAIXA DISPONÍVEL</h2><div id="contas"></div><div class="total greenText"><span>TOTAL EM CAIXA</span><span id="caixa2"></span></div></section><section class="panel"><h2>VALORES A RECEBER</h2><div id="receberLista"></div><div class="total greenText"><span>TOTAL A RECEBER</span><span id="receber"></span></div></section></div>
+<section class="panel abr-suppliers-page" data-abr-screen="pendencias" id="fornecedoresSeparados"><div class="abr-suppliers-heading"><div><h2>FORNECEDORES</h2><p>O que compramos, o que já pagamos e o que falta.</p></div><span class="abr-suppliers-private">SEU CONTROLE</span></div><div class="supplierGrid" id="painelFornecedores"></div><p class="abr-suppliers-help">O extrato mostra somente a negociação do fornecedor escolhido. Para registrar uma nova mercadoria, use <b>Lançamentos</b>.</p></section>
+<div class="cols" data-abr-screen="mais" data-abr-sub="relatorios"><section class="panel"><h2>CAIXA DISPONÍVEL</h2><div id="contas"></div><div class="total greenText"><span>TOTAL EM CAIXA</span><span id="caixa2"></span></div></section><section class="panel"><h2>VALORES A RECEBER</h2><div id="receberLista"></div><div class="total greenText"><span>TOTAL A RECEBER</span><span id="receber"></span></div></section></div>
 <section class="panel" data-abr-report="1" data-abr-screen="mais" data-abr-sub="relatorios"><h2>CENÁRIOS PARA PAGAR FORNECEDORES</h2><div class="cols scenarios" id="cenarios" style="grid-template-columns:repeat(3,1fr)"></div></section><div class="banner" data-abr-report="1" data-abr-screen="mais" data-abr-sub="relatorios" id="resumo"></div>
 <section class="panel" data-abr-report="1" data-abr-screen="mais" data-abr-sub="estoque"><div class="sectionHead"><h2>ESTOQUE POR MERCADORIA</h2><span class="muted">CONTROLE INICIAL</span></div><div class="stockgrid" id="estoque"></div><p class="hint">Estoque calculado somente pelas compras, vendas e ajustes com quantidade detalhada. Os consolidados antigos não têm pesos por produto cadastrados. Para obter o estoque real, registre um ajuste de estoque inicial para cada mercadoria.</p></section>
 <section class="panel" data-abr-screen="registrar" id="movimentacao"><div class="sectionHead"><h2>REGISTRAR</h2><button class="secondary abr-back-register" id="abr-back-register" type="button" aria-label="Voltar ao Início">← Início</button><button class="secondary abr-register-day" data-abr-go="vendasdia" type="button">Vendas</button><button class="secondary" id="toggle" type="button">Mostrar / ocultar</button></div>
@@ -296,12 +339,12 @@
   <div class="abr-reconcile-actions"><button type="button" id="abr-reconcile-cancel" class="secondary">Cancelar</button><button type="submit" id="abr-reconcile-save">Salvar saldos</button></div>
  </form>
 </dialog>
-<script defer="" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script defer="" src="config.js"></script><script defer="" src="app.js?v=653"></script><script defer="" src="cloud.js?v=653"></script><nav aria-label="Navegação do aplicativo" class="abr-bottom-nav">
+<script defer="" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script defer="" src="config.js"></script><script defer="" src="app.js?v=664"></script><script defer="" src="cloud.js?v=653"></script><nav aria-label="Navegação do aplicativo" class="abr-bottom-nav">
 <button class="active" data-abr-go="inicio" type="button"><span>⌂</span>Início</button>
 <button data-abr-go="registrar" type="button"><span>＋</span>Registrar</button>
-<button data-abr-go="vendasdia" type="button"><span>▣</span>Vendas</button><button data-abr-go="pendencias" type="button"><span>▤</span>Débitos</button>
+<button data-abr-go="vendasdia" type="button"><span>▣</span>Vendas</button><button data-abr-go="pendencias" type="button" aria-label="Fornecedores"><span>▤</span>Fornec.</button>
 <button data-abr-go="historico" type="button"><span>◷</span>Histórico</button>
-<button data-abr-go="mais" type="button"><span>☰</span>Mais</button></nav><script defer="True" src="abr-v5.js?v=653"></script><script defer="" src="abr-dia.js?v=653"></script><dialog aria-labelledby="abr-payment-title" class="abr-payment-dialog" id="abr-payment-dialog">
+<button data-abr-go="mais" type="button"><span>☰</span>Mais</button></nav><script defer="True" src="abr-v5.js?v=653"></script><script defer="" src="abr-dia.js?v=653"></script><dialog id="abr-supplier-statement-dialog" class="abr-supplier-statement-dialog" aria-labelledby="abr-statement-title"><div class="abr-statement-modal-top"><div><small>VISUALIZAÇÃO PARA COMPARTILHAR</small><h2 id="abr-statement-title">Extrato do fornecedor</h2></div><button id="abr-statement-close" class="secondary" type="button" aria-label="Fechar extrato">✕</button></div><p class="abr-statement-privacy">Somente compras, entregas e pagamentos deste fornecedor. Nenhum saldo pessoal é exibido.</p><div id="abr-statement-content" class="abr-statement-content"></div><div class="abr-statement-modal-actions"><button id="abr-statement-copy" class="secondary" type="button">Copiar texto</button><button id="abr-statement-print" type="button">Imprimir / Salvar PDF</button></div></dialog><dialog aria-labelledby="abr-payment-title" class="abr-payment-dialog" id="abr-payment-dialog">
 <div class="abr-payment-head"><div><h2 id="abr-payment-title">Simular pagamento</h2><p id="abr-payment-subtitle">—</p></div><button aria-label="Fechar" class="secondary smallBtn" id="abr-payment-close" type="button">✕</button></div>
 <div class="abr-pay-base"><div><label for="abr-payment-amount">Quanto paguei (R$)</label><input id="abr-payment-amount" inputmode="decimal" min="0.01" step="0.01" type="number"/></div><div><label for="abr-payment-date">Quando paguei</label><input id="abr-payment-date" type="date"/></div></div>
 <div id="abr-payment-account-wrap"><p class="abr-payment-method-head">Como paguei?</p><div class="abr-payment-sources" id="abr-payment-sources"></div><button type="button" class="secondary abr-add-source" id="abr-payment-add-source">+ Outra forma</button><div class="abr-payment-remaining" id="abr-payment-remaining" role="status"></div></div>
@@ -313,4 +356,4 @@
 <div id="abr-receivable-list" class="abr-receivable-list"></div>
 <div class="abr-receivable-preview" id="abr-receivable-preview" aria-live="polite"></div>
 <button type="button" id="abr-receivable-done" class="abr-receivable-done">Ver resultado</button>
-</dialog><script defer src="abr-vendas.js?v=654"></script><script defer src="abr-evolucao.js?v=662"></script></body></html>
+</dialog><script defer src="abr-vendas.js?v=654"></script><script defer src="abr-evolucao.js?v=664"></script></body></html>

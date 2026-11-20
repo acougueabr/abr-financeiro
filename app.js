@@ -169,28 +169,135 @@ function supplierRow(r){
   }
   return `<div class="supplierLine"><div class="supplierLineHead"><strong>${niceDate(r.data)} • ${esc(info.produto||'Mercadoria')}</strong><span class="status ${status.style}">${status.label}</span></div><div class="supplierMeta">${priceText}${info.desconto>0?` • Desconto: ${money(info.desconto)}`:''}${info.pessoa?`<br>Fornecedor no lançamento: ${esc(info.pessoa)}`:''}</div><div class="entry"><span class="muted">Custo da compra</span><b>${money(n(r))}</b></div>${remaining>0?`<div class="entry"><span class="muted">${paid(r.id)>0?'Pago até agora / falta':'Falta pagar'}</span><b class="red">${paid(r.id)>0?money(paid(r.id))+' / ':''}${money(remaining)}</b></div><button type="button" class="secondary smallBtn" data-pay-supplier="${esc(r.id)}">Registrar pagamento</button>`:''}</div>`;
 }
-function renderSuppliers(saldos){
-  const caixa=sum(Object.values(saldos));
-  el('painelFornecedores').innerHTML=SUPPLIER_CATEGORIES.map(cat=>{
-    const regs=state.registros.filter(r=>r.tipo==='compra'&&supplierCategory(r)===cat).sort((a,b)=>a.data.localeCompare(b.data)||(a.criadoEm||'').localeCompare(b.criadoEm||''));
-    const total=sum(regs.map(n)),pago=sum(regs.map(r=>r.status==='quitado'?n(r):paid(r.id)));
-    const falta=sum(regs.map(r=>r.status==='pendente'?restante(r):0));
-    const suficiente=caixa>=falta;
-    const situacao=falta<=0.005?'Todas as compras deste fornecedor estão quitadas.':suficiente?`Se pagar somente este fornecedor, sobram <b class="greenText">${money(caixa-falta)}</b> no caixa.`:`Considerando somente o caixa de agora, <b class="red">faltam ${money(falta-caixa)}</b> para quitar este fornecedor.`;
-    return `<article class="supplierCard" data-supplier-category="${esc(cat)}"><h3>${esc(supplierTitle(cat))}</h3><label for="supplier-${esc(cat.replace(/[^a-z]/ig,''))}">Nome do fornecedor (opcional)</label><div class="supplierInput"><input aria-label="Nome: ${esc(supplierTitle(cat))}" class="supplierName" value="${esc(state.fornecedores[cat]||'')}" placeholder="Nome do fornecedor"><button type="button" class="secondary smallBtn saveSupplier" data-save-supplier="${esc(cat)}">Salvar</button></div><div class="supplierTotals"><div><small>COMPRAS TOTAIS</small><strong>${money(total)}</strong></div><div><small>JÁ PAGO</small><strong class="greenText">${money(pago)}</strong></div><div><small>AINDA A PAGAR</small><strong class="red">${money(falta)}</strong></div><div><small>CAIXA ATUAL</small><strong>${money(caixa)}</strong></div></div><div class="supplierDecision">${situacao}</div><button type="button" class="secondary smallBtn" data-buy-supplier="${esc(cat)}" style="margin-top:9px;width:100%">+ Registrar compra de ${esc(cat)}</button><div class="supplierFoot"><details><summary><strong>HISTÓRICO DE COMPRAS</strong></summary>${regs.length?regs.map(supplierRow).join(''):'<p class="hint">Nenhuma compra registrada.</p>'}</details></div></article>`;
+// Fornecedores são separados por nome E mercadoria: não mistura contas de
+// dois fornecedores diferentes da mesma categoria em um extrato.
+function supplierGroups(){
+  const groups=new Map();
+  for(const r of state.registros){
+    if(r.tipo!=='compra')continue;
+    const cat=supplierCategory(r);
+    if(!cat)continue;
+    const vendor=String(r.pessoa||state.fornecedores[cat]||supplierTitle(cat)).trim();
+    const normalized=vendor.toLocaleLowerCase('pt-BR');
+    const key=cat+'|'+normalized;
+    if(!groups.has(key))groups.set(key,{key,cat,name:vendor,regs:[]});
+    groups.get(key).regs.push(r);
+  }
+  return [...groups.values()].sort((a,b)=>{
+    const order=SUPPLIER_CATEGORIES.indexOf(a.cat)-SUPPLIER_CATEGORIES.indexOf(b.cat);
+    return order||a.name.localeCompare(b.name,'pt-BR');
+  });
+}
+function supplierPaid(r){return r.status==='quitado'?n(r):paid(r.id)}
+function supplierDue(r){return r.status==='pendente'?restante(r):0}
+function renderSuppliers(){
+  const root=el('painelFornecedores');
+  const groups=supplierGroups();
+  if(!groups.length){root.innerHTML='<p class="hint">Nenhuma compra cadastrada. Registre uma compra em Lançamentos para começar.</p>';return}
+  root.innerHTML=groups.map(group=>{
+    const regs=[...group.regs].sort((a,b)=>a.data.localeCompare(b.data)||(a.criadoEm||'').localeCompare(b.criadoEm||''));
+    const total=sum(regs.map(n)),pago=sum(regs.map(supplierPaid)),falta=sum(regs.map(supplierDue));
+    const label=group.cat==='Carne bovina'?'CARNE BOVINA':group.cat.toLocaleUpperCase('pt-BR');
+    return `<article class="abr-supplier-card" data-supplier-category="${esc(group.cat)}" data-supplier-key="${esc(group.key)}">
+      <div class="abr-supplier-main"><div class="abr-supplier-identity"><small>${esc(label)}</small><h3>${esc(group.name)}</h3></div>
+      <div class="abr-supplier-balance"><small>FALTA PAGAR</small><strong class="${falta>0?'red':'greenText'}">${money(falta)}</strong></div></div>
+      <div class="abr-supplier-subtotals"><span>Compramos <b>${money(total)}</b></span><span>Já pagamos <b>${money(pago)}</b></span></div>
+      <div class="abr-supplier-actions"><button type="button" class="secondary" data-abr-supplier-statement="${esc(group.key)}">▤ Extrato para fornecedor</button></div>
+      <details class="abr-supplier-more" data-abr-ui-key="${esc(group.key)}"><summary>Ver negociação e pagamentos</summary>
+        <div class="abr-supplier-more-body">
+          <p class="abr-supplier-detail-label">Entregas e pagamentos deste fornecedor</p>
+          ${regs.map(supplierRow).join('')}
+          <div class="abr-supplier-edit"><label>Nome padrão para novas compras de ${esc(group.cat)}</label>
+          <div class="supplierInput"><input class="supplierName" aria-label="Nome padrão de fornecedor" value="${esc(state.fornecedores[group.cat]||'')}" placeholder="Nome do fornecedor"/><button type="button" class="secondary smallBtn saveSupplier" data-save-supplier="${esc(group.cat)}">Salvar</button></div></div>
+          <button type="button" class="secondary smallBtn abr-supplier-add" data-buy-supplier="${esc(group.cat)}" data-buy-vendor="${esc(group.name)}">＋ Registrar outra compra</button>
+        </div>
+      </details>
+    </article>`;
   }).join('');
 }
+// Extrato externo: exclusivamente compras, entregas, descontos e pagamentos
+// vinculados ao fornecedor escolhido. Não inclui caixa, Pix, clientes,
+// vendas, empréstimos, simulações ou dados de outros fornecedores.
+let currentSupplierStatementText='';
+function supplierStatementRows(group){
+  const purchaseRows=[],paymentRows=[];
+  const regs=[...group.regs].sort((a,b)=>a.data.localeCompare(b.data));
+  for(const r of regs){
+    const info=supplierInfo(r),unit=info.unidade||'kg';
+    const quantity=Number(info.quantidade||0),price=Number(info.preco||0);
+    const qtyLabel=quantity>0?fmtQty(quantity,unit):'Quantidade não informada';
+    const unitPrice=price>0?` • ${money(price)}/${unit}`:'';
+    if(Array.isArray(info.lotes)&&info.lotes.length){
+      info.lotes.forEach((lot,i)=>purchaseRows.push({date:lot.data,description:`${i+1}ª banda de boi — ${fmtQty(lot.quantidade,unit)} • ${money(price)}/${unit}`,amount:round2(lot.quantidade*price)}));
+      if(Number(info.desconto)>0)purchaseRows.push({date:'—',description:'Descontos combinados das duas bandas',amount:-round2(info.desconto)});
+    }else{
+      const detail=String(r.detalhe||'').trim();
+      const label=(r.id==='c3'?'3ª banda de boi':
+        r.id==='70ad7b7e-8d7d-4711-a7c9-b270a4de6cdc'?'4ª banda de boi':
+        detail?`${info.produto||group.cat} — ${detail}`:info.produto||group.cat);
+      purchaseRows.push({date:r.data,description:`${label} — ${qtyLabel}${unitPrice}`,amount:n(r)});
+    }
+    const related=state.registros.filter(p=>p.tipo==='pagamento'&&p.vinculo===r.id).sort((a,b)=>a.data.localeCompare(b.data));
+    if(r.status==='quitado'){
+      // A compra foi marcada como quitada, mas não existe data separada
+      // do pagamento original. Nunca inventar essa data.
+      paymentRows.push({date:'—',description:'Compra registrada como já paga (data do pagamento não informada)',amount:n(r)});
+    }else{
+      for(const p of related)paymentRows.push({date:p.data,description:'Pagamento registrado',amount:n(p)});
+    }
+  }
+  return {purchaseRows,paymentRows};
+}
+function showSupplierStatement(key){
+  const group=supplierGroups().find(g=>g.key===key);
+  if(!group)return;
+  const {purchaseRows,paymentRows}=supplierStatementRows(group);
+  const total=sum(group.regs.map(n)),pago=sum(group.regs.map(supplierPaid)),falta=sum(group.regs.map(supplierDue));
+  const rowHtml=rows=>rows.length?rows.map(r=>`<tr><td>${r.date==='—'?'—':niceDate(r.date)}</td><td>${esc(r.description)}</td><td class="abr-statement-money">${money(r.amount)}</td></tr>`).join(''):'<tr><td colspan="3">Nenhum registro</td></tr>';
+  const content=`<div class="abr-statement-brand"><span>AÇOUGUE <b>ABR</b></span><small>EXTRATO PARA CONFERÊNCIA</small></div>
+    <h2>${esc(group.name)}</h2><p class="abr-statement-subtitle">${esc(group.cat)} • Gerado em ${niceDate(today())}</p>
+    <div class="abr-statement-summary"><div><small>COMPRAS</small><b>${money(total)}</b></div><div><small>PAGAMENTOS</small><b>${money(pago)}</b></div><div><small>SALDO A PAGAR</small><b>${money(falta)}</b></div></div>
+    <h3>Entregas e valores combinados</h3><table><thead><tr><th>Data</th><th>Mercadoria / quantidade</th><th>Valor</th></tr></thead><tbody>${rowHtml(purchaseRows)}</tbody></table>
+    <h3>Pagamentos registrados</h3><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th></tr></thead><tbody>${rowHtml(paymentRows)}</tbody></table>
+    <p class="abr-statement-disclaimer">Extrato de conferência de compras e pagamentos. Não substitui nota fiscal nem recibo de quitação. Valores sujeitos à conferência entre as partes.</p>`;
+  currentSupplierStatementText=[
+    'AÇOUGUE ABR — EXTRATO PARA CONFERÊNCIA',
+    `Fornecedor: ${group.name} (${group.cat})`,
+    `Compras: ${money(total)} | Pagamentos: ${money(pago)} | Saldo a pagar: ${money(falta)}`,
+    '', 'ENTREGAS E VALORES COMBINADOS',
+    ...purchaseRows.map(r=>`${r.date==='—'?'—':niceDate(r.date)} | ${r.description} | ${money(r.amount)}`),
+    '', 'PAGAMENTOS REGISTRADOS',
+    ...paymentRows.map(r=>`${r.date==='—'?'—':niceDate(r.date)} | ${r.description} | ${money(r.amount)}`),
+    '', 'Documento para conferência, não substitui nota fiscal ou recibo.'
+  ].join('\n');
+  el('abr-statement-content').innerHTML=content;
+  const dialog=el('abr-supplier-statement-dialog');
+  if(!dialog.open)dialog.showModal();
+}
+function printSupplierStatement(){
+  // Janela isolada: nem mesmo o HTML da tela privada é enviado à impressão.
+  const popup=window.open('','_blank');
+  if(!popup){alert('O navegador bloqueou a janela. Permita pop-ups para imprimir o extrato.');return}
+  const content=el('abr-statement-content').innerHTML;
+  popup.document.open();
+  popup.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Extrato do fornecedor • Açougue ABR</title><style>
+    *{box-sizing:border-box}body{margin:0;background:#f2f3f5;color:#111;font:14px Arial,sans-serif}.paper{max-width:790px;margin:25px auto;padding:36px;background:#fff;box-shadow:0 3px 16px #0001}.abr-statement-brand{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #bf2739;padding-bottom:13px}.abr-statement-brand span{font-size:16px;font-weight:700}.abr-statement-brand b{font-size:28px}.abr-statement-brand small{font-size:11px;letter-spacing:1px}.paper h2{font-size:23px;margin:25px 0 4px}.abr-statement-subtitle{color:#666;margin:0 0 22px}.abr-statement-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:20px 0}.abr-statement-summary div{padding:12px;border:1px solid #ddd;border-radius:7px}.abr-statement-summary small{display:block;font-size:10px;color:#555;margin-bottom:6px}.abr-statement-summary b{font-size:17px}.paper h3{font-size:15px;margin:25px 0 9px}.paper table{width:100%;border-collapse:collapse}.paper th,.paper td{padding:9px 7px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}.paper th{background:#f3f3f3;font-size:12px}.paper td:first-child{white-space:nowrap;width:85px}.abr-statement-money{text-align:right!important;white-space:nowrap}.abr-statement-disclaimer{color:#555;font-size:11px;margin-top:30px;line-height:1.5}.tools{position:sticky;top:0;display:flex;justify-content:center;gap:10px;background:#222;padding:12px}.tools button{border:0;border-radius:7px;padding:10px 18px;font-weight:700;cursor:pointer}.tools button:first-child{background:#36d4a2}.tools button:last-child{background:#ddd}@page{size:A4;margin:14mm}@media print{body{background:#fff}.paper{max-width:none;margin:0;padding:0;box-shadow:none}.tools{display:none}.paper tr{break-inside:avoid}}
+  </style></head><body><div class="tools"><button onclick="window.print()">Imprimir / Salvar PDF</button><button onclick="window.close()">Fechar</button></div><div class="paper">${content}</div></body></html>`);
+  popup.document.close();
+  try{popup.opener=null;popup.focus()}catch{}
+}
+
 function saveSupplierName(cat,value){
   if(!SUPPLIER_CATEGORIES.includes(cat))return;
   const old=state.fornecedores[cat];state.fornecedores[cat]=value.trim();
   if(!save()){state.fornecedores[cat]=old;return}
   render();
 }
-function startSupplierPurchase(cat){
+function startSupplierPurchase(cat,vendor){
   if(!SUPPLIER_CATEGORIES.includes(cat))return;
   el('tipo').value='compra';toggleFormType();
   el('produtoCompra').value=cat;
-  el('fornecedorCompra').value=state.fornecedores[cat]||'';
+  el('fornecedorCompra').value=vendor||state.fornecedores[cat]||'';
   el('data').value=today();
   el('form').classList.remove('hidden');
   updatePurchasePreview();
@@ -608,7 +715,14 @@ function bind(){
     const saveBtn=e.target.closest('[data-save-supplier]');
     if(saveBtn){const card=saveBtn.closest('[data-supplier-category]');saveSupplierName(saveBtn.dataset.saveSupplier,card.querySelector('.supplierName').value);return}
     const payBtn=e.target.closest('[data-pay-supplier]');if(payBtn){startSupplierPayment(payBtn.dataset.paySupplier);return}
-    const buyBtn=e.target.closest('[data-buy-supplier]');if(buyBtn)startSupplierPurchase(buyBtn.dataset.buySupplier);
+    const buyBtn=e.target.closest('[data-buy-supplier]');if(buyBtn){startSupplierPurchase(buyBtn.dataset.buySupplier,buyBtn.dataset.buyVendor);return}
+    const statement=e.target.closest('[data-abr-supplier-statement]');if(statement){showSupplierStatement(statement.dataset.abrSupplierStatement);return}
+  });
+  el('abr-statement-close').addEventListener('click',()=>el('abr-supplier-statement-dialog').close());
+  el('abr-statement-print').addEventListener('click',printSupplierStatement);
+  el('abr-statement-copy').addEventListener('click',async()=>{
+    try{await navigator.clipboard.writeText(currentSupplierStatementText);el('abr-statement-copy').textContent='Copiado!';setTimeout(()=>{el('abr-statement-copy').textContent='Copiar texto'},1800)}
+    catch{alert('Não foi possível copiar automaticamente. Use Imprimir / Salvar PDF.');}
   });
   addItem();
   el('toggle').onclick=()=>el('form').classList.toggle('hidden');
@@ -707,4 +821,4 @@ function bind(){
   toggleFormType();updateSalePreview();updatePurchasePreview();
 }
 initialize();bind();render();
-if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=653').catch(()=>{});
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=664').catch(()=>{});
