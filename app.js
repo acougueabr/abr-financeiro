@@ -552,11 +552,25 @@ function removePrivateHistory(index){
 }
 async function importSpreadsheetHistory(e){
  const file=e.target.files?.[0];if(!file)return;
- try{const data=JSON.parse(await file.text());
-   if(data.formato!=='abr-historico-planilha-v1'||!Array.isArray(data.vendas)||!data.vendas.every(x=>typeof x.data==='string'&&Number.isFinite(Number(x.valor))))throw Error('Arquivo de histórico inválido. Selecione o JSON privado do ABR.');
-   if(!confirm(`Importar ${data.vendas.length} vendas históricas para conferência? Elas NÃO serão somadas ao faturamento, caixa ou estoque.`))return;
-   const prev=state.historicoPlanilha;state.historicoPlanilha=data.vendas;
-   if(!save()){state.historicoPlanilha=prev;return}render();alert('Histórico privado importado sem duplicar o caixa.');
+ try{
+   const data=JSON.parse(await file.text());
+   const isDay=data.formato==='abr-historico-dia-v1';
+   const isFull=data.formato==='abr-historico-planilha-v1';
+   if((!isDay&&!isFull)||!Array.isArray(data.vendas)||!data.vendas.every(x=>typeof x.data==='string'&&Number.isFinite(Number(x.valor))))throw Error('Arquivo de histórico inválido. Escolha o JSON privado do ABR.');
+   const prev=state.historicoPlanilha;
+   if(isDay){
+     const day=data.dia;
+     if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||!data.vendas.length||!data.vendas.every(x=>x.data===day))throw Error('O arquivo precisa conter apenas vendas do dia informado.');
+     const existing=Array.isArray(prev)?prev:[];
+     const previousDay=existing.filter(x=>x.data===day);
+     if(!confirm(`Importar ${data.vendas.length} vendas de ${niceDate(day)}?\n\n${previousDay.length?'Os '+previousDay.length+' detalhes desse mesmo dia serão substituídos. Os outros dias ficam intactos.':'Os outros dias ficam intactos.'}\n\nOs valores NÃO serão somados novamente ao caixa ou faturamento.`))return;
+     state.historicoPlanilha=[...existing.filter(x=>x.data!==day),...data.vendas];
+   }else{
+     if(!confirm(`Substituir todo o histórico de conferência por ${data.vendas.length} vendas? Isso NÃO soma faturamento ou caixa.`))return;
+     state.historicoPlanilha=data.vendas;
+   }
+   if(!save()){state.historicoPlanilha=prev;return}
+   render();alert(isDay?'Vendas do dia importadas sem duplicar o caixa.':'Histórico privado importado sem duplicar o caixa.');
  }catch(err){alert(err.message)}finally{e.target.value=''}
 }
 function download(name,content,type){const a=document.createElement('a'),url=URL.createObjectURL(new Blob([content],{type}));a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),20000)}
