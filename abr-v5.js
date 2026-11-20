@@ -105,6 +105,10 @@
   let activeAccount=null, paymentContext=null;
   // Simulação apenas em memória: não cria lançamentos nem altera saldos reais.
   let simCustom=false;
+  const excludedAccounts=new Set();
+  const excludedDebts=new Set();
+  const expandedPayables=new Set(['Frango']);
+  let showAllReceivables=false;
   let simSelectedIds=new Set();
   function pendingReceivables(){
     return state.registros.filter(r=>isReceivable(r)&&restante(r)>0.005)
@@ -113,13 +117,96 @@
   function selectedReceivables(rows){
     return simCustom?rows.filter(r=>simSelectedIds.has(String(r.id))):rows;
   }
+  function payableRows(){return state.registros.filter(r=>isDebt(r)&&restante(r)>0.005)}
+  function payableCategory(r){
+    if(r.tipo==='compra')return supplierCategory(r)||'Outras mercadorias';
+    if(r.tipo==='despesa')return /ajudante|salário|salario|equipe/i.test(r.descricao||'')?'Equipe':'Despesas';
+    if(r.tipo==='investimento')return 'Investimentos';
+    return 'Outras contas';
+  }
+  function groupedPayables(){
+    const map=new Map();
+    for(const r of payableRows()){
+      const cat=payableCategory(r);
+      if(!map.has(cat))map.set(cat,[]);
+      map.get(cat).push(r);
+    }
+    const priority=['Carne bovina','Frango','Porco','Toscana','Calabresa','Outras mercadorias','Equipe','Despesas','Investimentos','Outras contas'];
+    return [...map.entries()].sort((a,b)=>{
+      const ia=priority.indexOf(a[0]),ib=priority.indexOf(b[0]);
+      return (ia<0?999:ia)-(ib<0?999:ib)||a[0].localeCompare(b[0],'pt-BR');
+    });
+  }
+  function selectedAvailable(f){
+    const bal=availableBalances();
+    return round2(f.available-sum([...excludedAccounts].map(k=>Number(bal[k]||0))));
+  }
+  function selectedDebt(){return sum(payableRows().filter(r=>!excludedDebts.has(String(r.id))).map(restante))}
+  function selectedReceivableAmount(){return sum(selectedReceivables(pendingReceivables()).map(restante))}
+  function updateSimulation(f){
+    const available=selectedAvailable(f),debt=selectedDebt(),receivable=selectedReceivableAmount();
+    const diff=round2(available-debt),projected=round2(available+receivable),after=round2(projected-debt);
+    $('abr-home-caixa').textContent=moneyBR(available);
+    $('abr-home-debitos').textContent=moneyBR(debt);
+    $('abr-home-lucro').textContent=moneyBR(Math.abs(diff));
+    $('abr-home-result-title').textContent=diff>=-0.005?'SOBRA APÓS QUITAR':'FALTA PRA QUITAR';
+    $('abr-home-result-card').classList.toggle('abr-surplus',diff>=-0.005);
+    $('abr-home-result-card').classList.toggle('abr-shortage',diff<-.005);
+    $('abr-home-a-receber').textContent=moneyBR(receivable);
+    $('abr-home-quanto-ficaria').textContent=moneyBR(projected);
+    $('abr-home-faltaria-receber').textContent=moneyBR(Math.abs(after));
+    $('abr-home-after-title').textContent=after>=-0.005?'SOBRA APÓS RECEBER':'FALTA APÓS RECEBER';
+    $('abr-home-after-card').classList.toggle('abr-surplus',after>=-0.005);
+    $('abr-home-after-card').classList.toggle('abr-shortage',after<-.005);
+    const different=excludedAccounts.size>0||excludedDebts.size>0||(simCustom&&selectedReceivables(pendingReceivables()).length!==pendingReceivables().length);
+    $('abr-sim-indicator').hidden=!different;
+    return {available,debt,receivable,projected,diff,after};
+  }
+  function renderCleanLists(){
+    const groups=groupedPayables();
+    const allPending=payableRows();
+    for(const id of [...excludedDebts])if(!allPending.some(r=>String(r.id)===id))excludedDebts.delete(id);
+    const pay=$('abr-select-payables');
+    pay.innerHTML=groups.length?groups.map(([cat,rows])=>{
+      const amount=sum(rows.map(restante));
+      const checked=rows.filter(r=>!excludedDebts.has(String(r.id))).length;
+      const hasChildren=rows.length>1;
+      const open=expandedPayables.has(cat);
+      return `<div class="abr-clean-group"><div class="abr-clean-line">`+
+        `<input type="checkbox" data-abr-debt-group="${esc(cat)}" aria-label="Incluir ${esc(cat)}" ${checked===rows.length?'checked':''}>`+
+        `<button type="button" class="abr-clean-group-toggle" data-abr-expand-cat="${esc(cat)}" aria-expanded="${open}" aria-label="${esc(cat)}: ${rows.length} compra(s)"><span>${esc(cat)}${hasChildren?` <small>(${rows.length})</small>`:''}</span><b>${moneyBR(amount)}</b><span class="abr-clean-chevron">${open?'⌃':'⌄'}</span></button>`+
+        `</div>`+(open?`<div class="abr-clean-children">${rows.map(r=>`<label class="abr-clean-line abr-clean-child"><input type="checkbox" data-abr-debt-id="${esc(r.id)}" ${excludedDebts.has(String(r.id))?'':'checked'}><span>${niceDate(r.id==='c3'&&r.legacy?'2026-11-17':r.data)}${r.descricao&&!r.legacy?' · '+esc(r.descricao):''}</span><b>${moneyBR(restante(r))}</b></label>`).join('')}</div>`:'')+`</div>`;
+    }).join(''):'<p class="abr-clean-empty">Nenhuma conta pendente.</p>';
+    pay.querySelectorAll('[data-abr-debt-group]').forEach(box=>{
+      const rows=groups.find(([cat])=>cat===box.dataset.abrDebtGroup)?.[1]||[];
+      const count=rows.filter(r=>!excludedDebts.has(String(r.id))).length;
+      box.indeterminate=count>0&&count<rows.length;
+    });
+    const recRows=pendingReceivables();
+    const shown=showAllReceivables?recRows:recRows.slice(0,4);
+    $('abr-select-receivables').innerHTML=shown.length?shown.map(r=>{
+      const selected=!simCustom||simSelectedIds.has(String(r.id));
+      return `<label class="abr-clean-line abr-clean-receivable-line"><input type="checkbox" data-abr-receivable-inline="${esc(r.id)}" ${selected?'checked':''}><span>${esc(r.pessoa||r.descricao||'A receber')}</span><b>${moneyBR(restante(r))}</b></label>`;
+    }).join(''):'<p class="abr-clean-empty">Nada a receber.</p>';
+    const more=$('abr-receivable-expand');
+    more.hidden=recRows.length<=4;
+    more.textContent=showAllReceivables?'Ver menos':`Ver todos (${recRows.length})`;
+  }
+  function updateCleanHome(){
+    const f=dashboardFinancial();
+    updateSimulation(f);
+    const bal=availableBalances();
+    document.querySelectorAll('[data-abr-select-account]').forEach(box=>{box.checked=!excludedAccounts.has(box.dataset.abrSelectAccount)});
+    // Existing modal is optional; if open, keep its calculation in sync.
+    if($('abr-receivable-dialog').open)updateReceivableScenario(f);
+  }
   function updateReceivableScenario(financial){
     const f=financial||dashboardFinancial();
     const rows=pendingReceivables();
     const selected=selectedReceivables(rows);
     const amount=sum(selected.map(restante));
-    const projected=round2(f.available+amount);
-    const difference=round2(projected-f.debt);
+    const projected=round2(selectedAvailable(f)+amount);
+    const difference=round2(projected-selectedDebt());
     $('abr-home-a-receber').textContent=moneyBR(f.receivable);
     $('abr-home-quanto-ficaria').textContent=moneyBR(projected);
     $('abr-home-faltaria-receber').textContent=moneyBR(Math.abs(difference));
@@ -154,19 +241,10 @@
   function paint(){
     if(!$('abr-home-caixa'))return;
     const f=dashboardFinancial();
-    $('abr-home-caixa').textContent=moneyBR(f.available);
-    $('abr-home-debitos').textContent=moneyBR(f.debt);
-    const difference=round2(f.available-f.debt);
-    const resultCard=$('abr-home-result-card'),resultTitle=$('abr-home-result-title'),resultNote=$('abr-home-result-note');
-    const enough=difference>=-0.005;
-    resultCard.classList.toggle('abr-surplus',enough);
-    resultCard.classList.toggle('abr-shortage',!enough);
-    resultTitle.textContent=enough?'SOBRA APÓS QUITAR':'FALTA PRA QUITAR';
-    $('abr-home-lucro').textContent=moneyBR(Math.abs(difference));
-    resultNote.textContent=enough?'Sobra de caixa após quitar as contas':'Diferença entre disponível e dívidas';
+    updateSimulation(f);
     $('abr-home-faturamento').textContent='Faturamento: '+moneyBR(f.revenue);
     $('abr-home-receber').textContent='A receber: '+moneyBR(f.receivable);
-    updateReceivableScenario(f);
+    renderCleanLists();
     const bal=availableBalances();
     const categories=[['Espécie cédulas','Cédulas'],['Espécie moedas','Moedas'],['Pix','Pix'],['Maquininha','Maquininha']];
     $('abr-home-composicao').innerHTML=categories.map(([k,title])=>`<div class="abr-money"><span class="abr-money-name">${title}</span><strong>${moneyBR(bal[k]||0)}</strong></div>`).join('');
@@ -174,6 +252,7 @@
     if(registerGrid)registerGrid.innerHTML=categories.map(([k,title])=>`<div class="abr-money"><span class="abr-money-name">${title}</span><strong class="${Number(bal[k]||0)<0?'red':''}">${moneyBR(bal[k]||0)}</strong></div>`).join('');
     if($('abr-reg-total'))$('abr-reg-total').textContent=moneyBR(sum(Object.values(bal)));
     paintAccountButtons(bal);
+    document.querySelectorAll('[data-abr-select-account]').forEach(box=>{box.checked=!excludedAccounts.has(box.dataset.abrSelectAccount)});
 
     const other=Object.entries(bal).filter(([k,v])=>!categories.some(([cat])=>cat===k)&&Math.abs(Number(v))>0.005);
     const otherTotal=sum(other.map(([,v])=>v));
@@ -421,17 +500,18 @@
   }
   $('abr-receivable-close').onclick=()=>$('abr-receivable-dialog').close();
   $('abr-receivable-done').onclick=()=>$('abr-receivable-dialog').close();
-  $('abr-receivable-all').onclick=()=>{simCustom=false;simSelectedIds.clear();renderReceivableList()};
-  $('abr-receivable-none').onclick=()=>{simCustom=true;simSelectedIds.clear();renderReceivableList()};
+  $('abr-receivable-all').onclick=()=>{simCustom=false;simSelectedIds.clear();renderReceivableList();renderCleanLists();updateCleanHome()};
+  $('abr-receivable-none').onclick=()=>{simCustom=true;simSelectedIds.clear();renderReceivableList();renderCleanLists();updateCleanHome()};
   $('abr-receivable-list').addEventListener('change',e=>{
     const field=e.target.closest('[data-abr-receivable-id]');if(!field)return;
     if(!simCustom){simSelectedIds=new Set(pendingReceivables().map(r=>String(r.id)));simCustom=true;}
     if(field.checked)simSelectedIds.add(field.dataset.abrReceivableId);
     else simSelectedIds.delete(field.dataset.abrReceivableId);
-    updateReceivableScenario();
+    updateReceivableScenario();renderCleanLists();updateCleanHome();
   });
-  document.querySelectorAll('[data-abr-open-receivable]').forEach(b=>b.addEventListener('click',openReceivable));
+  document.querySelectorAll('[data-abr-open-receivable]').forEach(b=>b.addEventListener('click',()=>{goto('inicio');$('abr-select-receivables').scrollIntoView({behavior:'smooth',block:'center'})}));
   document.querySelectorAll('.abr-top-nav [data-abr-go]').forEach(b=>b.addEventListener('click',()=>goto(b.dataset.abrGo)));
+  $('abr-back-register').addEventListener('click',()=>goto('inicio'));
   $('abr-reconcile-open').onclick=openReconcile;
   $('abr-reconcile-close').onclick=closeReconcile;
   $('abr-reconcile-cancel').onclick=closeReconcile;
@@ -446,6 +526,36 @@
     paintAccountButtons(availableBalances());
   });
   $('abr-account-others').addEventListener('click',e=>{if(e.target.closest('#abr-reconcile-warning'))openReconcile()});
+  $('abr-account-buttons').addEventListener('change',e=>{
+    const box=e.target.closest('[data-abr-select-account]');if(!box)return;
+    if(box.checked)excludedAccounts.delete(box.dataset.abrSelectAccount);
+    else excludedAccounts.add(box.dataset.abrSelectAccount);
+    updateCleanHome();
+  });
+  $('abr-select-payables').addEventListener('change',e=>{
+    const item=e.target.closest('[data-abr-debt-id]');
+    if(item){if(item.checked)excludedDebts.delete(item.dataset.abrDebtId);else excludedDebts.add(item.dataset.abrDebtId)}
+    const group=e.target.closest('[data-abr-debt-group]');
+    if(group){const rows=groupedPayables().find(([cat])=>cat===group.dataset.abrDebtGroup)?.[1]||[];
+      for(const r of rows){if(group.checked)excludedDebts.delete(String(r.id));else excludedDebts.add(String(r.id))}
+    }
+    renderCleanLists();updateCleanHome();
+  });
+  $('abr-select-payables').addEventListener('click',e=>{
+    const button=e.target.closest('[data-abr-expand-cat]');if(!button)return;
+    const cat=button.dataset.abrExpandCat;
+    if(expandedPayables.has(cat))expandedPayables.delete(cat);else expandedPayables.add(cat);
+    renderCleanLists();
+  });
+  $('abr-select-receivables').addEventListener('change',e=>{
+    const box=e.target.closest('[data-abr-receivable-inline]');if(!box)return;
+    if(!simCustom){simSelectedIds=new Set(pendingReceivables().map(r=>String(r.id)));simCustom=true}
+    if(box.checked)simSelectedIds.add(box.dataset.abrReceivableInline);
+    else simSelectedIds.delete(box.dataset.abrReceivableInline);
+    updateCleanHome();
+  });
+  $('abr-receivable-expand').addEventListener('click',()=>{showAllReceivables=!showAllReceivables;renderCleanLists()});
+
   $('abr-payment-close').onclick=closePayment;
   $('abr-payment-cancel').onclick=closePayment;
   $('abr-payment-dialog').addEventListener('cancel',()=>{paymentContext=null});
@@ -498,8 +608,8 @@
     const card=e.target.closest('[data-abr-card-action]');
     if(card){
       const action=card.dataset.abrCardAction;
-      if(action==='receivable'){openReceivable();return}
-      if(action==='payables'){goto('pendencias');return}
+      if(action==='receivable'){$('abr-select-receivables').scrollIntoView({behavior:'smooth',block:'center'});return}
+      if(action==='payables'){$('abr-select-payables').scrollIntoView({behavior:'smooth',block:'center'});return}
       if(action==='accounts'){$('abr-account-buttons').scrollIntoView({behavior:'smooth',block:'center'});return}
     }
     const go=e.target.closest('[data-abr-go]');if(go){goto(go.dataset.abrGo,go.dataset.abrSub);return}

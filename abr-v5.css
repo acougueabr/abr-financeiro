@@ -327,7 +327,7 @@ body.abr-v5 #movimentacao .abr-sale-status{padding:3px 0;font-size:11px}
 .abr-balance-compact-alert span{flex:1;min-width:0;line-height:1.3}.abr-balance-compact-alert b{color:#65dba9;white-space:nowrap;font-size:12px}
 
 /* V5.8: atalho de registrar sempre perto do polegar no iPhone. */
-body.abr-v5.abr-on-register header.top{display:none}
+@media(max-width:899px){body.abr-v5.abr-on-register header.top{display:none}}
 body.abr-v5 #movimentacao #vendaBox:not(.abr-multi-item) .abr-sale-total{display:none}
 body.abr-v5 #movimentacao #pagamentoVenda:not(.abr-has-troco) .abr-troco-row{display:none}
 @media(max-width:650px){
@@ -487,3 +487,64 @@ body.abr-v5 .abr-account-button.active{background:#18352c;border-color:var(--abr
 @media(max-width:899px){.abr-top-nav{display:none}body.abr-v5 main{padding:12px 12px 112px}body.abr-v5 main>.top{min-height:70px;padding:4px 2px 12px;gap:10px}body.abr-v5 .top .brand{font-size:12px;padding:0 7px 9px 0}body.abr-v5 .top .brand b{font-size:30px}body.abr-v5 .top .abr-header-title{padding-left:12px}body.abr-v5 .top h1{font-size:clamp(20px,5vw,28px)}body.abr-v5 .top p{font-size:11px;margin-top:4px}body.abr-v5 .top .version{font-size:9px}body.abr-v5 .abr-kpis{gap:8px}body.abr-v5 .abr-kpi.abr-kpi-action{min-height:118px;padding:11px 9px;gap:6px;border-radius:13px;border-left-width:3px;flex-direction:column;align-items:flex-start}body.abr-v5 .abr-kpis .abr-kpi small{font-size:clamp(9px,1.5vw,13px);letter-spacing:0;line-height:1.12}body.abr-v5 .abr-kpis .abr-kpi strong{font-size:clamp(16px,3.25vw,25px);letter-spacing:-.6px}body.abr-v5 .abr-kpis .abr-kpi .abr-kpi-note{font-size:9px;line-height:1.2}.abr-kpi-icon{height:22px;width:22px;flex:0 0 22px;margin:0}.abr-kpi-icon svg{width:21px;height:21px}.abr-kpi-copy{gap:6px}body.abr-v5 .abr-home-accounts{padding:14px 12px;border-radius:15px}body.abr-v5 .abr-home-accounts .abr-panel-title h2{font-size:16px}body.abr-v5 .abr-account-buttons{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}body.abr-v5 .abr-account-button{grid-template-columns:28px 1fr;min-height:81px;padding:10px;gap:5px}.abr-account-icon{width:24px;height:24px}body.abr-v5 .abr-account-button span{font-size:12px}body.abr-v5 .abr-account-button strong{font-size:clamp(16px,3.6vw,23px)}}
 @media(max-width:410px){body.abr-v5 main{padding-left:9px;padding-right:9px}body.abr-v5 .abr-kpis{gap:6px}body.abr-v5 .abr-kpi.abr-kpi-action{min-height:116px;padding:9px 7px;gap:5px}body.abr-v5 .abr-kpis .abr-kpi small{font-size:9px}body.abr-v5 .abr-kpis .abr-kpi strong{font-size:clamp(13px,3.7vw,17px);letter-spacing:-.6px}body.abr-v5 .abr-kpis .abr-kpi .abr-kpi-note{font-size:8px}.abr-kpi-icon{flex-basis:19px;height:19px;width:19px}.abr-kpi-icon svg{width:18px;height:18px}}
 @media(prefers-reduced-motion:reduce){body.abr-v5 .abr-kpi.abr-kpi-action{transition:none}}
+
+/* ABR Financeiro v6.2 — minimalismo funcional, seleções sem movimentar dinheiro */
+body.abr-v5 main{max-width:1190px}
+body.abr-v5 main>.top{min-height:76px;padding-bottom:12px}
+body.abr-v5 .top .brand{font-size:13px}
+body.abr-v5 .top .brand b{font-size:36px}
+body.abr-v5 .top h1{font-size:clamp(22px,2.5vw,31px)}
+body.abr-v5 .abr-kpis{gap:10px}
+body.abr-v5 .abr-kpi.abr-kpi-action{min-height:104px;border-radius:14px;padding:16px;gap:11px}
+body.abr-v5 .abr-kpis .abr-kpi small{font-size:clamp(12px,1.25vw,15px)}
+body.abr-v5 .abr-kpis .abr-kpi strong{font-size:clamp(21px,2.2vw,30px)}
+body.abr-v5 .abr-kpis .abr-kpi .abr-kpi-note{display:none}
+.abr-kpi-icon{width:30px;height:30px;flex-basis:30px}
+.abr-kpi-icon svg{width:29px;height:29px}
+.abr-sim-indicator{display:inline-block;margin:5px 0 0 12px;color:#f6c36a;border:1px solid #8e6634;border-radius:5px;padding:2px 6px;font-size:10px;font-weight:800;letter-spacing:.5px}
+.abr-sim-indicator[hidden]{display:none!important}
+body.abr-v5 .abr-home-accounts{margin-top:12px;padding:14px 15px;border-radius:14px}
+body.abr-v5 .abr-home-accounts .abr-panel-title{margin-bottom:9px}
+body.abr-v5 .abr-home-accounts .abr-panel-title h2{font-size:15px}
+body.abr-v5 .abr-account-buttons{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+body.abr-v5 .abr-account-tile{position:relative;min-width:0}
+body.abr-v5 .abr-account-button{display:grid;grid-template-columns:20px minmax(0,1fr);grid-template-rows:auto auto;column-gap:7px;row-gap:7px;align-items:center;min-height:77px;margin:0;padding:12px 27px 10px 11px;border:1px solid #4b5966;border-radius:11px;background:#1d242d;cursor:pointer}
+body.abr-v5 .abr-account-button:has(input:checked){border-color:#4d8d79}
+body.abr-v5 .abr-account-button input{grid-column:1;grid-row:1;margin:0;width:17px;height:17px;accent-color:#3adfa0;cursor:pointer}
+body.abr-v5 .abr-account-button span{grid-column:2;grid-row:1;font-size:11px;color:#d2d9e0;letter-spacing:.2px}
+body.abr-v5 .abr-account-button strong{grid-column:1/3;grid-row:2;font-size:clamp(16px,1.9vw,23px);line-height:1.12;color:#fff;font-variant-numeric:tabular-nums}
+body.abr-v5 .abr-account-button:not(:has(input:checked)){opacity:.65}
+body.abr-v5 .abr-account-details-button{position:absolute;top:9px;right:8px;background:transparent;border:0;padding:0 4px;color:#a9b5c1;font-size:17px;line-height:1.3;cursor:pointer}
+body.abr-v5 .abr-account-details-button.active{color:#51dbac}
+body.abr-v5 .abr-account-detail{margin-top:9px}
+.abr-clean-lists{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.abr-clean-panel{min-width:0;background:#11171d;border:1px solid #3f4d5a;border-radius:14px;padding:12px 14px 10px}
+.abr-clean-debts{border-color:#7b424d}
+.abr-clean-receivables{border-color:#336a8d}
+.abr-clean-panel header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+.abr-clean-panel h2{font-size:15px;line-height:1.2;margin:0;font-weight:850;color:#f1f4f8}
+.abr-clean-debts h2{color:#ff8490}
+.abr-clean-receivables h2{color:#7fc8f7}
+.abr-clean-link{background:none;border:0;padding:5px 0;color:#aeb9c4;font-size:11px;white-space:nowrap;cursor:pointer}
+.abr-clean-link:hover{color:#fff}
+.abr-clean-line{display:flex;align-items:center;gap:10px;min-height:45px;border-top:1px solid #303b46;color:#f1f4f7;font-size:13px}
+.abr-clean-line input{appearance:auto;accent-color:#31d89a;flex:0 0 17px;width:17px;height:17px;margin:0;cursor:pointer}
+.abr-clean-line b{margin-left:auto;font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.abr-clean-group-toggle{display:flex;align-items:center;gap:9px;flex:1;min-width:0;padding:11px 0;border:0;background:transparent;color:inherit;font-weight:700;text-align:left;cursor:pointer}
+.abr-clean-group-toggle>span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.abr-clean-group-toggle small{font-size:12px;color:#b8c2cb;font-weight:400}
+.abr-clean-chevron{width:13px;text-align:center;color:#abb4be;font-size:16px}
+.abr-clean-children{margin-left:8px;padding-left:16px;border-left:1px solid #45505d}
+.abr-clean-child{min-height:38px;font-size:11px;color:#c4cdd6;cursor:pointer}
+.abr-clean-child b{font-size:12px;font-weight:650}
+.abr-clean-receivable-line{cursor:pointer}
+.abr-clean-receivable-line>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.abr-clean-empty{margin:18px 0;color:#aab6c1;font-size:12px}
+@media(max-width:899px){body.abr-v5 main{padding-left:10px;padding-right:10px}body.abr-v5 .abr-kpi.abr-kpi-action{min-height:88px;padding:10px 8px;gap:6px}body.abr-v5 .abr-kpis .abr-kpi small{font-size:clamp(9px,1.8vw,12px)}body.abr-v5 .abr-kpis .abr-kpi strong{font-size:clamp(14px,3.6vw,23px)}body.abr-v5 .abr-home-accounts{padding:12px 10px}body.abr-v5 .abr-account-buttons{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}body.abr-v5 .abr-account-button{min-height:65px;padding:9px 24px 8px 9px;row-gap:5px}body.abr-v5 .abr-account-button strong{font-size:clamp(17px,4.3vw,22px)}.abr-clean-lists{grid-template-columns:1fr;gap:9px;margin-top:9px}.abr-clean-panel{padding:12px 12px 9px}.abr-clean-panel h2{font-size:14px}.abr-clean-line{min-height:43px}}
+@media(max-width:410px){body.abr-v5 .abr-kpi.abr-kpi-action{min-height:87px;padding:8px 6px;gap:4px}body.abr-v5 .abr-kpis .abr-kpi strong{font-size:clamp(12px,3.7vw,16px)}body.abr-v5 .abr-kpis .abr-kpi small{font-size:9px}.abr-kpi-icon{width:17px;height:17px;flex-basis:17px}.abr-kpi-icon svg{width:17px;height:17px}}
+
+
+/* v6.2.1 — retorno sempre acessível na tela de lançamento. */
+body.abr-v5 #movimentacao .abr-back-register{margin-left:auto;width:auto;min-height:30px;padding:5px 9px;border:1px solid #435c55;border-radius:8px;background:#1b3029;color:#74dfad;font-size:12px;white-space:nowrap;line-height:1.2}
+body.abr-v5 #movimentacao .abr-back-register:hover{background:#264b3b}
+@media(min-width:900px){body.abr-v5.abr-on-register header.top{display:flex!important}}
