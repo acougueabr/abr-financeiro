@@ -13,6 +13,7 @@
     });
     $('abr-home').classList.toggle('abr-show',name==='inicio');
     document.querySelectorAll('.abr-bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.abrGo===name));
+    document.querySelectorAll('.abr-top-nav [data-abr-go]').forEach(b=>b.classList.toggle('active',b.dataset.abrGo===name));
     document.body.classList.toggle('abr-on-register',name==='registrar');
     if(name==='registrar')$('form').classList.remove('hidden');
     if(name==='mais'){
@@ -102,6 +103,54 @@
     return {margin,accountedRevenue,accountedCost,expenses,uncosted,uncostedValue,hasLegacy};
   }
   let activeAccount=null, paymentContext=null;
+  // Simulação apenas em memória: não cria lançamentos nem altera saldos reais.
+  let simCustom=false;
+  let simSelectedIds=new Set();
+  function pendingReceivables(){
+    return state.registros.filter(r=>isReceivable(r)&&restante(r)>0.005)
+      .sort((a,b)=>String(a.data||'').localeCompare(String(b.data||''))||String(a.pessoa||a.descricao||'').localeCompare(String(b.pessoa||b.descricao||''),'pt-BR'));
+  }
+  function selectedReceivables(rows){
+    return simCustom?rows.filter(r=>simSelectedIds.has(String(r.id))):rows;
+  }
+  function updateReceivableScenario(financial){
+    const f=financial||dashboardFinancial();
+    const rows=pendingReceivables();
+    const selected=selectedReceivables(rows);
+    const amount=sum(selected.map(restante));
+    const projected=round2(f.available+amount);
+    const difference=round2(projected-f.debt);
+    $('abr-home-a-receber').textContent=moneyBR(f.receivable);
+    $('abr-home-quanto-ficaria').textContent=moneyBR(projected);
+    $('abr-home-faltaria-receber').textContent=moneyBR(Math.abs(difference));
+    $('abr-home-after-title').textContent=difference>=-0.005?'SOBRARIA APÓS QUITAR':'FALTARIA PRA QUITAR APÓS RECEBER';
+    $('abr-home-after-note').textContent=difference>=-0.005?'Após pagar as contas pendentes':'Diferença após recebimentos simulados';
+    $('abr-home-after-card').classList.toggle('abr-surplus',difference>=-0.005);
+    $('abr-home-after-card').classList.toggle('abr-shortage',difference<-.005);
+    $('abr-home-sim-note').textContent=rows.length?`Simulação • ${selected.length} de ${rows.length} selecionado${selected.length===1?'':'s'}`:'Sem valores pendentes';
+    const count=$('abr-receivable-count');
+    if(count)count.textContent=`${selected.length} de ${rows.length} selecionado${selected.length===1?'':'s'}`;
+    const preview=$('abr-receivable-preview');
+    if(preview)preview.innerHTML=`<div><span>A receber selecionado</span><b class="abr-blue-text">${moneyBR(amount)}</b></div>`+
+      `<div><span>Quanto ficaria</span><b class="greenText">${moneyBR(projected)}</b></div>`+
+      `<div><span>${difference>=-0.005?'Sobraria após quitar':'Faltaria após receber'}</span><b class="${difference>=-0.005?'greenText':'orange'}">${moneyBR(Math.abs(difference))}</b></div>`;
+  }
+  function renderReceivableList(){
+    const rows=pendingReceivables();
+    $('abr-receivable-list').innerHTML=rows.length?rows.map(r=>{
+      const selected=!simCustom||simSelectedIds.has(String(r.id));
+      const who=r.pessoa||r.descricao||'A receber';
+      return `<label class="abr-receivable-row"><input type="checkbox" data-abr-receivable-id="${esc(r.id)}" ${selected?'checked':''}>`+
+        `<span class="abr-receivable-person"><b>${esc(who)}</b><small>${r.tipo==='venda'?'Fiado':'Empréstimo'} • ${niceDate(r.data)}</small></span>`+
+        `<strong>${moneyBR(restante(r))}</strong></label>`;
+    }).join(''):'<p class="abr-receivable-empty">Não há fiados ou empréstimos pendentes.</p>';
+    updateReceivableScenario();
+  }
+  function openReceivable(){
+    renderReceivableList();
+    $('abr-receivable-dialog').showModal();
+  }
+
   function paint(){
     if(!$('abr-home-caixa'))return;
     const f=dashboardFinancial();
@@ -112,11 +161,12 @@
     const enough=difference>=-0.005;
     resultCard.classList.toggle('abr-surplus',enough);
     resultCard.classList.toggle('abr-shortage',!enough);
-    resultTitle.textContent=enough?'LUCRO':'FALTA PRA QUITAR';
+    resultTitle.textContent=enough?'SOBRA APÓS QUITAR':'FALTA PRA QUITAR';
     $('abr-home-lucro').textContent=moneyBR(Math.abs(difference));
     resultNote.textContent=enough?'Sobra de caixa após quitar as contas':'Diferença entre disponível e dívidas';
     $('abr-home-faturamento').textContent='Faturamento: '+moneyBR(f.revenue);
     $('abr-home-receber').textContent='A receber: '+moneyBR(f.receivable);
+    updateReceivableScenario(f);
     const bal=availableBalances();
     const categories=[['Espécie cédulas','Cédulas'],['Espécie moedas','Moedas'],['Pix','Pix'],['Maquininha','Maquininha']];
     $('abr-home-composicao').innerHTML=categories.map(([k,title])=>`<div class="abr-money"><span class="abr-money-name">${title}</span><strong>${moneyBR(bal[k]||0)}</strong></div>`).join('');
@@ -369,6 +419,19 @@
     if(!save()){state.registros=oldRecords;return}
     closeReconcile();activeAccount=null;render();
   }
+  $('abr-receivable-close').onclick=()=>$('abr-receivable-dialog').close();
+  $('abr-receivable-done').onclick=()=>$('abr-receivable-dialog').close();
+  $('abr-receivable-all').onclick=()=>{simCustom=false;simSelectedIds.clear();renderReceivableList()};
+  $('abr-receivable-none').onclick=()=>{simCustom=true;simSelectedIds.clear();renderReceivableList()};
+  $('abr-receivable-list').addEventListener('change',e=>{
+    const field=e.target.closest('[data-abr-receivable-id]');if(!field)return;
+    if(!simCustom){simSelectedIds=new Set(pendingReceivables().map(r=>String(r.id)));simCustom=true;}
+    if(field.checked)simSelectedIds.add(field.dataset.abrReceivableId);
+    else simSelectedIds.delete(field.dataset.abrReceivableId);
+    updateReceivableScenario();
+  });
+  document.querySelectorAll('[data-abr-open-receivable]').forEach(b=>b.addEventListener('click',openReceivable));
+  document.querySelectorAll('.abr-top-nav [data-abr-go]').forEach(b=>b.addEventListener('click',()=>goto(b.dataset.abrGo)));
   $('abr-reconcile-open').onclick=openReconcile;
   $('abr-reconcile-close').onclick=closeReconcile;
   $('abr-reconcile-cancel').onclick=closeReconcile;
@@ -432,6 +495,13 @@
   $('abr-fast-scale').onclick=()=>quick('investimento','balanca');
   $('abr-transfer-form').addEventListener('submit',transfer);
   $('abr-home').addEventListener('click',e=>{
+    const card=e.target.closest('[data-abr-card-action]');
+    if(card){
+      const action=card.dataset.abrCardAction;
+      if(action==='receivable'){openReceivable();return}
+      if(action==='payables'){goto('pendencias');return}
+      if(action==='accounts'){$('abr-account-buttons').scrollIntoView({behavior:'smooth',block:'center'});return}
+    }
     const go=e.target.closest('[data-abr-go]');if(go){goto(go.dataset.abrGo,go.dataset.abrSub);return}
     const sim=e.target.closest('[data-abr-simulate]');if(sim){openPayment({id:sim.dataset.abrSimulate,mode:'simulate'});return}
     const simcat=e.target.closest('[data-abr-simulate-cat]');if(simcat){openPayment({cat:simcat.dataset.abrSimulateCat,mode:'simulate'});return}
