@@ -707,4 +707,4 @@ function bind(){
   toggleFormType();updateSalePreview();updatePurchasePreview();
 }
 initialize();bind();render();
-if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=640').catch(()=>{});
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=653').catch(()=>{});

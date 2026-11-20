@@ -75,7 +75,13 @@
     const pays=payments.map(p=>`<div class="abr-dia-row"><span>Pagamento ${esc(p.tipo||'')}<small>${esc(p.forma||'')}</small></span><b>${fmt(p.valor)}</b></div>`).join('');
     return `<details class="abr-dia-more"><summary>Compras e pagamentos registrados na planilha</summary>${buys}${pays}<p class="abr-dia-help">Compras, pagamentos e abatimentos são informações de conferência: não geram novos lançamentos no caixa.</p></details>`;
   }
+  let lastPaintedDate=null;
   function paint(){
+    const openState={};
+    for(const id of ['abr-dia-vendas','abr-dia-fornecedores']){
+      const root=$(id);
+      openState[id]=root?[...root.querySelectorAll('details')].map(detail=>detail.open):[];
+    }
     fillSelector();const date=select.value;
     const day=imported(date),live=calculateFromApp(date),cash=(bank()?.caixaFisico||[]).find(r=>r.data===date);
     const show=day||live;
@@ -115,6 +121,14 @@
     const source=bank();
     $('abr-dia-origem').textContent=source?`${source.confereTotais.quantidadeVendas} vendas históricas importadas e sincronizáveis. Origem: planilha 18/11.`:'Importe o arquivo privado preparado a partir da planilha para ver a divisão dos dias 14 a 18/11.';
     $('abr-dia-alerta').textContent=hasSource&&date==='2026-11-18'?'ATENÇÃO: a planilha soma R$ 534,05 (10 vendas) em 18/11, enquanto o fechamento antigo mostrava R$ 740,23. Diferença: R$ 206,18. Nenhum valor do caixa foi alterado.':'';
+    if(date===lastPaintedDate){
+      for(const id of ['abr-dia-vendas','abr-dia-fornecedores']){
+        $(id)?.querySelectorAll('details').forEach((detail,index)=>{
+          if(index<openState[id].length)detail.open=openState[id][index];
+        });
+      }
+    }
+    lastPaintedDate=date;
   }
   async function loadFile(e){
     const f=e.target.files?.[0];if(!f)return;

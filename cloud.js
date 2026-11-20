@@ -86,6 +86,13 @@
   // Não substitua metadados editados offline por valores remotos antigos.
   const config=queue.meta??remote.cfg??metaOf(state);
   const next={...config,registros:regs};
+  // A verificação periódica não deve redesenhar toda a tela se não há alterações.
+  // Compara IDs ordenados: a nuvem pode devolver os mesmos registros em outra ordem.
+  const normalized=x=>{
+    const {registros,...meta}=x;
+    return string({meta,registros:[...(registros||[])].sort((a,b)=>String(a.id).localeCompare(String(b.id)))});
+  };
+  if(normalized(next)===normalized(state))return;
   const oldState=state;
   state=next;
   // Grava no mesmo localStorage de v1-v3, mas sem registrar a leitura da nuvem como alteração local.

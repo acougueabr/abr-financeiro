@@ -1,9 +1,28 @@
-/* ABR Financeiro v6.5.2 — histórico padronizado, 14–18/11, sem duplicar caixa. */
+/* ABR Financeiro v6.5.4 — filtros de vendas por período + aberturas fixas, sem alterar os valores. */
 'use strict';
 (()=>{
   const $=id=>document.getElementById(id);
   const START='2026-11-14';
   let mode='hoje',chosen=today();
+  // Preferências VISUAIS, isoladas dos dados financeiros. Não recriar dias abertos
+  // automaticamente quando o app sincronizar ou recalcular o painel.
+  const UI_KEY='abr-ui-vendas-aberturas-v1';
+  const salesUI=(()=>{try{const value=JSON.parse(localStorage.getItem(UI_KEY)||'{}');return value&&typeof value==='object'&&!Array.isArray(value)?value:{}}catch{return {}}})();
+  const hasChoice=key=>Object.prototype.hasOwnProperty.call(salesUI,key);
+  function saveChoice(key,open){
+    salesUI[key]=!!open;
+    try{localStorage.setItem(UI_KEY,JSON.stringify(salesUI))}catch{} // nunca bloquear vendas
+  }
+  function uiKey(details){
+    const day=details.closest('[data-abr-day]');
+    if(!day)return null;
+    const d=day.dataset.abrDay;
+    if(details===day)return `day:${d}`;
+    const record=details.closest('[data-abr-record]');
+    if(!record)return null;
+    return `record:${d}:${record.dataset.abrRecord}${details===record?'':':note'}`;
+  }
+
   const cashNames={'Espécie cédulas':'Espécie','Espécie moedas':'Espécie','Espécie':'Espécie','Dinheiro':'Espécie','Pix':'Pix','Maquininha':'Maquininha'};
   const labelAccount=a=>({'Espécie cédulas':'Cédulas','Espécie moedas':'Moedas','Espécie':'Espécie','Dinheiro':'Espécie','Pix':'Pix','Maquininha':'Maquininha'})[a]||a||'Não informado';
   const realSales=()=>state.registros.filter(r=>r.tipo==='venda'&&!r.semFaturamento&&r.data>=START);
@@ -73,10 +92,10 @@
     const generic=/^(?:Planilha antiga \+ (?:Mercado Pago|PicPay)|Caderno(?: 15\/11| 17\/11)?(?: \+ (?:Mercado Pago|PicPay|confirmação no chat))?|Chat(?: de 14\/11| \+ Mercado Pago| de 14\/11 \+ PicPay)|Correção no chat \+ Mercado Pago)$/i;
     const observation=note&&!generic.test(note)?`<details class="abr-sale-observation"><summary>Observação da planilha</summary><div>${esc(note)}</div></details>`:'';
     const title=r.produto==='Não detalhado'?'Venda':r.produto||'Mercadoria';
-    return `<details class="abr-sale-record abr-sale-private"><summary><span class="abr-sale-no">${index+1}</span><span class="abr-sale-name">${esc(title)}</span><strong>${money(r.valor)}</strong><span class="abr-sale-chevron">⌄</span></summary><div class="abr-sale-record-body">${received||'<div class="abr-sales-meta">Sem pagamento registrado</div>'}${change}${due}${client}${observation}</div></details>`;
+    return `<details class="abr-sale-record abr-sale-private" data-abr-record="private:${esc(r.numero||String(index+1))}"><summary><span class="abr-sale-no">${index+1}</span><span class="abr-sale-name">${esc(title)}</span><strong>${money(r.valor)}</strong><span class="abr-sale-chevron">⌄</span></summary><div class="abr-sale-record-body">${received||'<div class="abr-sales-meta">Sem pagamento registrado</div>'}${change}${due}${client}${observation}</div></details>`;
   }
   function adjustmentDetail(r){
-    return `<details class="abr-sales-adjustment"><summary><span>Ajuste de conciliação • sem venda comprovada</span><strong>${money(r.valor)}</strong><span>⌄</span></summary><div>Este valor consta no fechamento da planilha, mas não possui comprovante individual de venda. Foi mantido para não alterar o total consolidado.${r.observacoes?`<p>${esc(r.observacoes)}</p>`:''}</div></details>`;
+    return `<details class="abr-sales-adjustment" data-abr-record="adjustment:${esc(r.numero||String(r.valor))}"><summary><span>Ajuste de conciliação • sem venda comprovada</span><strong>${money(r.valor)}</strong><span>⌄</span></summary><div>Este valor consta no fechamento da planilha, mas não possui comprovante individual de venda. Foi mantido para não alterar o total consolidado.${r.observacoes?`<p>${esc(r.observacoes)}</p>`:''}</div></details>`;
   }
   function salesDetail(r,index){
     const parts=Array.isArray(r.recebimentos)?r.recebimentos:[];
@@ -88,7 +107,7 @@
     const client=r.pessoa?`<div class="abr-sales-meta">Cliente: ${esc(r.pessoa)}</div>`:'';
     const note=r.observacao?`<div class="abr-sales-meta">${esc(r.observacao)}</div>`:'';
     const due=restante(r)>0.005?`<div class="abr-sales-detail-line abr-sales-due"><span>Fiado a receber</span><b>${money(restante(r))}</b></div>`:'';
-    return `<details class="abr-sale-record"><summary><span class="abr-sale-no">${index+1}</span><span class="abr-sale-name">${esc(title)}</span><strong>${money(r.valor)}</strong><span class="abr-sale-chevron">⌄</span></summary><div class="abr-sale-record-body">${itemRows}${received||'<div class="abr-sales-meta">Sem pagamento registrado</div>'}${change}${due}${client}${note}<div class="abr-sales-cancel-row"><button type="button" data-abr-cancel-sale="${esc(r.id)}">Cancelar venda</button></div></div></details>`;
+    return `<details class="abr-sale-record" data-abr-record="sale:${esc(r.id)}"><summary><span class="abr-sale-no">${index+1}</span><span class="abr-sale-name">${esc(title)}</span><strong>${money(r.valor)}</strong><span class="abr-sale-chevron">⌄</span></summary><div class="abr-sale-record-body">${itemRows}${received||'<div class="abr-sales-meta">Sem pagamento registrado</div>'}${change}${due}${client}${note}<div class="abr-sales-cancel-row"><button type="button" data-abr-cancel-sale="${esc(r.id)}">Cancelar venda</button></div></div></details>`;
   }
   function dayDetails(d){
     const rows=detailSales(d),consolidated=dailySales(d).filter(r=>r.legacy),privateRows=imported(d);
@@ -138,12 +157,24 @@
     $('abr-sales-date-picker').hidden=mode!=='dia';
     $('abr-sales-date').value=date;
     document.querySelectorAll('[data-abr-sales-period]').forEach(b=>{const active=b.dataset.abrSalesPeriod===mode;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active))});
-    $('abr-sales-list').innerHTML=allDays().map(d=>{
+    // Mostrar somente os dias do filtro ativo. O histórico inteiro pertence
+    // exclusivamente à aba 'Todo o período'. Nenhum lançamento é apagado.
+    const visibleDays=mode==='todos'?allDays():[date];
+    $('abr-sales-list').innerHTML=visibleDays.map(d=>{
       const isOff=d==='2026-11-16'&&!dailySales(d).length&&!imported(d).length;
-      const open=mode!=='todos'&&d===date&&!isOff;
+      const open=!isOff&&(hasChoice(`day:${d}`)?salesUI[`day:${d}`]:(mode!=='todos'&&d===date));
       const dayTotal=sum(dailySales(d).map(n));
       return `<details class="abr-sales-day${isOff?' abr-sales-day-off':''}" data-abr-day="${d}"${open?' open':''}><summary class="abr-sales-day-summary"><span class="abr-sales-day-date">${shortDate(d)}</span><span class="abr-sales-day-count">${isOff?'Folga':esc(countLabel(d))}</span><span class="abr-sales-day-total">${isOff?'':dailySales(d).length?money(dayTotal):'—'}</span><span class="abr-sales-day-chevron">${isOff?'':'⌄'}</span></summary>${isOff?'':`<div class="abr-sales-day-content">${dayDetails(d)}</div>`}</details>`;
     }).join('');
+    // Restaurar a abertura de cada venda e observação, sem modificar valores.
+    $('abr-sales-list').querySelectorAll('details[data-abr-record]').forEach(record=>{
+      const key=uiKey(record);
+      if(key&&hasChoice(key))record.open=!!salesUI[key];
+      record.querySelectorAll('details.abr-sale-observation').forEach(note=>{
+        const noteKey=uiKey(note);
+        if(noteKey&&hasChoice(noteKey))note.open=!!salesUI[noteKey];
+      });
+    });
     // Dia de folga é rótulo informativo, não abre lançamentos fictícios.
     $('abr-sales-list').querySelectorAll('.abr-sales-day-off').forEach(d=>d.addEventListener('toggle',()=>{if(d.open)d.open=false}));
   }
@@ -160,13 +191,21 @@
   $('abr-import-vendas').onclick=()=>$('arquivoPlanilha').click();
   $('abr-sales-date').onchange=()=>{chosen=$('abr-sales-date').value||today();mode='dia';paint()};
   $('abr-sales-today').onclick=()=>{mode='hoje';chosen=today();paint()};
-  document.querySelectorAll('[data-abr-sales-period]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.abrSalesPeriod;if(mode==='hoje')chosen=today();paint()}));
+  document.querySelectorAll('[data-abr-sales-period]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.abrSalesPeriod;paint()}));
   $('abr-sales-list').addEventListener('click',e=>{
+    const summary=e.target.closest('summary');
+    if(summary&&summary.parentElement?.tagName==='DETAILS'){
+      const details=summary.parentElement;
+      if(!details.classList.contains('abr-sales-day-off')){
+        const key=uiKey(details);
+        if(key)saveChoice(key,!details.open); // o clique alternará a abertura
+      }
+    }
     const b=e.target.closest('[data-abr-cancel-sale]');
     if(!b)return;
     e.preventDefault();e.stopPropagation();removeTransaction(b.dataset.abrCancelSale);
   });
-  // Toda nova abertura de Vendas começa pelo dia atual, inclusive no celular.
-  document.addEventListener('click',e=>{const b=e.target.closest('[data-abr-go="vendasdia"]');if(b){mode='hoje';chosen=today();paint()}},true);
+  // Navegar para Vendas NÃO desfaz a seleção nem a abertura escolhida.
+  // O dia de hoje só é o padrão na primeira abertura do aplicativo.
   paint();
 })();

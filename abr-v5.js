@@ -83,7 +83,7 @@
     }
     if(!markup)markup='<p class="abr-help">Nenhuma compra cadastrada ainda.</p>';
     const head=`<span class="cat">${esc(cat)}<b>Já pago ${moneyBR(already)}</b></span><span class="sum ${due<0.005?'abr-ok':''}">${moneyBR(due)}</span>`;
-    return `<details class="abr-supplier"><summary>${head}</summary><div class="abr-supplier-body">${markup}<div class="abr-row-buttons"><button type="button" class="secondary smallBtn" data-abr-buy="${esc(cat)}">＋ Nova compra</button></div></div></details>`;
+    return `<details class="abr-supplier" data-abr-ui-key="${esc(cat)}"><summary>${head}</summary><div class="abr-supplier-body">${markup}<div class="abr-row-buttons"><button type="button" class="secondary smallBtn" data-abr-buy="${esc(cat)}">＋ Nova compra</button></div></div></details>`;
   }
   function estimateProfit(){
     const sales=state.registros.filter(r=>r.tipo==='venda'&&Array.isArray(r.itens));
@@ -268,7 +268,7 @@
     $('abr-home-fornecedores').innerHTML=cats.map(cat=>supplierRender(cat)).join('');
     const otherD=state.registros.filter(r=>r.tipo!=='compra'&&isDebt(r)&&restante(r)>0);
     const otherDue=sum(otherD.map(restante));
-    if(otherDue>0)$('abr-home-fornecedores').insertAdjacentHTML('beforeend',`<details class="abr-supplier"><summary><span class="cat">Outras contas / equipe</span><span class="sum">${moneyBR(otherDue)}</span></summary><div class="abr-supplier-body">${otherD.map(r=>`<div class="abr-ledger"><div class="abr-ledger-main"><span>${niceDate(r.data)} • ${esc(r.descricao)}</span><b>${moneyBR(restante(r))}</b></div><div class="abr-row-buttons"><button type="button" class="secondary smallBtn" data-abr-simulate="${esc(r.id)}">Simular</button><button type="button" class="smallBtn abr-paid-button" data-abr-confirm="${esc(r.id)}">✓ Já paguei</button></div></div>`).join('')}</div></details>`);
+    if(otherDue>0)$('abr-home-fornecedores').insertAdjacentHTML('beforeend',`<details class="abr-supplier" data-abr-ui-key="outras-contas"><summary><span class="cat">Outras contas / equipe</span><span class="sum">${moneyBR(otherDue)}</span></summary><div class="abr-supplier-body">${otherD.map(r=>`<div class="abr-ledger"><div class="abr-ledger-main"><span>${niceDate(r.data)} • ${esc(r.descricao)}</span><b>${moneyBR(restante(r))}</b></div><div class="abr-row-buttons"><button type="button" class="secondary smallBtn" data-abr-simulate="${esc(r.id)}">Simular</button><button type="button" class="smallBtn abr-paid-button" data-abr-confirm="${esc(r.id)}">✓ Já paguei</button></div></div>`).join('')}</div></details>`);
     const remaining=f.available-f.debt;
     $('abr-home-decisao').innerHTML=remaining>=0?`Após quitar tudo, ainda teremos <b class="greenText">${moneyBR(remaining)}</b>`:`Para quitar todos os pagamentos pendentes, <b class="red">faltam ${moneyBR(-remaining)}</b><small>O cálculo não inclui compras futuras ainda não registradas.</small>`;
     const profit=estimateProfit();
@@ -625,8 +625,32 @@
     if(e.target.closest('[data-buy-supplier],[data-pay-supplier]'))setTimeout(()=>goto('registrar'),0);
   });
   // Cloud, deletion, and new sales all invoke render() so the new dashboard updates as well.
+  // Atualizações automáticas devem atualizar os números, mas nunca forçar
+  // que o usuário abra/feche novamente as seções que estava consultando.
+  const keepOpenRoots=['painelFornecedores','historicoPlanilha','resumoPagamentoDia','abr-home-fornecedores'];
+  const keyOf=(root,detail,index)=>{
+    const supplier=detail.closest('[data-supplier-category]');
+    return root.id+':'+(detail.dataset.abrUiKey||supplier?.dataset.supplierCategory||index);
+  };
+  function snapshotOpen(){
+    const snapshot=new Map();
+    for(const id of keepOpenRoots){
+      const root=$(id);if(!root)continue;
+      root.querySelectorAll('details').forEach((detail,index)=>snapshot.set(keyOf(root,detail,index),detail.open));
+    }
+    return snapshot;
+  }
+  function restoreOpen(snapshot){
+    for(const id of keepOpenRoots){
+      const root=$(id);if(!root)continue;
+      root.querySelectorAll('details').forEach((detail,index)=>{
+        const key=keyOf(root,detail,index);
+        if(snapshot.has(key))detail.open=snapshot.get(key);
+      });
+    }
+  }
   const originalRender=render;
-  render=function(){originalRender();paint()};
+  render=function(){const opened=snapshotOpen();originalRender();paint();restoreOpen(opened)};
   paint();
   // Do not expose past data by default on shared screens.
   const hash=location.hash.replace('#','');
