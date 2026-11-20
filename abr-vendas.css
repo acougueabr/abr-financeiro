@@ -50,3 +50,18 @@ body.abr-v5 .abr-sales-cancel-row button{padding:6px 9px;font-size:11px;color:#f
  .abr-sales-day-total{font-size:13px}
  .abr-sales-history-head span{font-size:9px}
 }
+
+/* v6.5.2 — mesmas linhas de pagamento/troco para vendas históricas */
+body.abr-v5 .abr-history-import{background:transparent;border:0;color:#70d9ad;font-size:11px;padding:5px 1px;font-weight:750;white-space:nowrap}
+body.abr-v5 .abr-history-import:hover{text-decoration:underline}
+.abr-sales-method-muted{color:#9cabb8;font-size:11px;font-weight:500}
+.abr-sales-card-note{color:#b8b4d8;font-size:10px;line-height:1.25;margin-top:-1px}
+.abr-sale-observation{margin-top:8px;color:#aebcc7;font-size:11px}
+.abr-sale-observation>summary{display:list-item!important;min-height:0!important;padding:4px 0!important;cursor:pointer;color:#aebcc7;font-size:11px}
+.abr-sale-observation>div{padding:4px 0 5px;line-height:1.45}
+.abr-sales-adjustment{margin:9px 0;border:1px solid #6e583c;border-radius:8px;background:#2d281f;color:#eed3a8}
+.abr-sales-adjustment>summary{display:flex;align-items:center;gap:9px;list-style:none;padding:10px 9px;cursor:pointer;font-size:11px}
+.abr-sales-adjustment>summary span:first-child{flex:1}
+.abr-sales-adjustment>summary strong{font-size:13px;color:#f3e0bd}
+.abr-sales-adjustment>div{font-size:11px;color:#e6d6b8;line-height:1.5;padding:0 10px 10px}
+.abr-sales-adjustment>div p{margin:6px 0 0}

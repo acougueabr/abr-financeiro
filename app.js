@@ -566,8 +566,13 @@ async function importSpreadsheetHistory(e){
      if(!confirm(`Importar ${data.vendas.length} vendas de ${niceDate(day)}?\n\n${previousDay.length?'Os '+previousDay.length+' detalhes desse mesmo dia serão substituídos. Os outros dias ficam intactos.':'Os outros dias ficam intactos.'}\n\nOs valores NÃO serão somados novamente ao caixa ou faturamento.`))return;
      state.historicoPlanilha=[...existing.filter(x=>x.data!==day),...data.vendas];
    }else{
-     if(!confirm(`Substituir todo o histórico de conferência por ${data.vendas.length} vendas? Isso NÃO soma faturamento ou caixa.`))return;
-     state.historicoPlanilha=data.vendas;
+     // Atualizar somente os dias presentes no arquivo. Preservar qualquer outro
+     // dia privado já importado, além de todos os lançamentos financeiros.
+     const existing=Array.isArray(prev)?prev:[];
+     const days=new Set(data.vendas.map(r=>r.data));
+     const replaced=existing.filter(r=>days.has(r.data)).length;
+     if(!confirm(`Importar ${data.vendas.length} registros históricos de ${days.size} dia(s)?\n\n${replaced?'Serão substituídos '+replaced+' detalhes desses mesmos dias. ':''}Outros dias e lançamentos financeiros serão preservados.\n\nOs valores NÃO serão somados novamente ao caixa ou faturamento.`))return;
+     state.historicoPlanilha=[...existing.filter(r=>!days.has(r.data)),...data.vendas];
    }
    if(!save()){state.historicoPlanilha=prev;return}
    render();alert(isDay?'Vendas do dia importadas sem duplicar o caixa.':'Histórico privado importado sem duplicar o caixa.');

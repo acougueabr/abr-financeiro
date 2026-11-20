@@ -1,4 +1,4 @@
-/* ABR Financeiro v6.5.1 — histórico individual privado, sem duplicar caixa. */
+/* ABR Financeiro v6.5.2 — histórico padronizado, 14–18/11, sem duplicar caixa. */
 'use strict';
 (()=>{
   const $=id=>document.getElementById(id);
@@ -31,10 +31,15 @@
     }
     return {totals,hasLegacy,unmapped};
   }
+  const isAdjustment=r=>r&&r.ajusteConciliacao===true;
+  const privateSales=d=>imported(d).filter(r=>!isAdjustment(r));
+  const privateAdjustments=d=>imported(d).filter(isAdjustment);
   function countLabel(d){
-    const details=detailSales(d),old=dailySales(d).some(r=>r.legacy),priv=imported(d);
-    const count=details.length+priv.length;
-    if(count)return `${count} venda${count===1?'':'s'}`;
+    const details=detailSales(d),old=dailySales(d).some(r=>r.legacy);
+    const count=details.length+privateSales(d).length;
+    const adjusts=privateAdjustments(d).length;
+    if(count)return `${count} venda${count===1?'':'s'}${adjusts?' · '+adjusts+' ajuste'+(adjusts===1?'':'s'):''}`;
+    if(adjusts)return `${adjusts} ajuste${adjusts===1?'':'s'}`;
     if(old)return 'Consolidado';
     return '0 vendas';
   }
@@ -50,19 +55,28 @@
     return {totals,fiado};
   }
   function privateSaleDetail(r,index){
+    // A mesma estrutura visual das vendas novas. Não atribuímos taxa, tipo ou canal
+    // de cartão que não estejam comprovados no histórico original.
     const line=(label,val,cls='')=>`<div class="abr-sales-detail-line ${cls}"><span>${label}</span><b>${money(val)}</b></div>`;
-    let details='';
-    if(Number(r.notas)>0)details+=line('Espécie recebida',r.notas);
-    if(Number(r.pix)>0)details+=line('Pix recebido',r.pix);
-    if(Number(r.debito)>0)details+=line('Maquininha • débito',r.debito);
-    if(Number(r.credito)>0)details+=line('Maquininha • crédito',r.credito);
-    if(Number(r.cartaoAnterior)>0)details+=line('Maquininha • modalidade não identificada',r.cartaoAnterior);
-    if(Number(r.trocoDinheiro)>0)details+=line('Troco • espécie',r.trocoDinheiro,'abr-sales-change');
-    if(Number(r.trocoPix)>0)details+=line('Troco • Pix',r.trocoPix,'abr-sales-change');
-    if(Number(r.fiado)>0)details+=line('Fiado na data da venda',r.fiado,'abr-sales-due');
+    let received='';
+    if(Number(r.notas)>0)received+=line('Cédulas',r.notas);
+    if(Number(r.pix)>0)received+=line('Pix',r.pix);
+    if(Number(r.debito)>0)received+=line('Maquininha • Débito',r.debito);
+    if(Number(r.credito)>0)received+=line('Maquininha • Crédito',r.credito);
+    if(Number(r.cartaoAnterior)>0)received+=line('Maquininha <span class="abr-sales-method-muted">(tipo não informado)</span>',r.cartaoAnterior);
+    let change='';
+    if(Number(r.trocoDinheiro)>0)change+=line('Troco • Espécie',-Number(r.trocoDinheiro),'abr-sales-change');
+    if(Number(r.trocoPix)>0)change+=line('Troco • Pix',-Number(r.trocoPix),'abr-sales-change');
+    const due=Number(r.fiado)>0?line('Fiado a receber',r.fiado,'abr-sales-due'):'';
     const client=r.cliente?`<div class="abr-sales-meta">Cliente: ${esc(r.cliente)}</div>`:'';
-    const note=r.observacoes?`<div class="abr-sales-meta">${esc(r.observacoes)}</div>`:'';
-    return `<details class="abr-sale-record abr-sale-private"><summary><span class="abr-sale-no">${index+1}</span><span class="abr-sale-name">${esc(r.produto||'Mercadoria')}</span><strong>${money(r.valor)}</strong><span class="abr-sale-chevron">⌄</span></summary><div class="abr-sale-record-body">${details||'<div class="abr-sales-meta">Forma de pagamento não detalhada</div>'}${client}${note}</div></details>`;
+    const note=String(r.observacoes||'').trim();
+    const generic=/^(?:Planilha antiga \+ (?:Mercado Pago|PicPay)|Caderno(?: 15\/11| 17\/11)?(?: \+ (?:Mercado Pago|PicPay|confirmação no chat))?|Chat(?: de 14\/11| \+ Mercado Pago| de 14\/11 \+ PicPay)|Correção no chat \+ Mercado Pago)$/i;
+    const observation=note&&!generic.test(note)?`<details class="abr-sale-observation"><summary>Observação da planilha</summary><div>${esc(note)}</div></details>`:'';
+    const title=r.produto==='Não detalhado'?'Venda':r.produto||'Mercadoria';
+    return `<details class="abr-sale-record abr-sale-private"><summary><span class="abr-sale-no">${index+1}</span><span class="abr-sale-name">${esc(title)}</span><strong>${money(r.valor)}</strong><span class="abr-sale-chevron">⌄</span></summary><div class="abr-sale-record-body">${received||'<div class="abr-sales-meta">Sem pagamento registrado</div>'}${change}${due}${client}${observation}</div></details>`;
+  }
+  function adjustmentDetail(r){
+    return `<details class="abr-sales-adjustment"><summary><span>Ajuste de conciliação • sem venda comprovada</span><strong>${money(r.valor)}</strong><span>⌄</span></summary><div>Este valor consta no fechamento da planilha, mas não possui comprovante individual de venda. Foi mantido para não alterar o total consolidado.${r.observacoes?`<p>${esc(r.observacoes)}</p>`:''}</div></details>`;
   }
   function salesDetail(r,index){
     const parts=Array.isArray(r.recebimentos)?r.recebimentos:[];
@@ -78,11 +92,12 @@
   }
   function dayDetails(d){
     const rows=detailSales(d),consolidated=dailySales(d).filter(r=>r.legacy),privateRows=imported(d);
-    let markup=rows.map(salesDetail).join('')+privateRows.map((r,i)=>privateSaleDetail(r,rows.length+i)).join('');
+    const privSales=privateSales(d),adjustments=privateAdjustments(d);
+    let markup=rows.map(salesDetail).join('')+privSales.map((r,i)=>privateSaleDetail(r,rows.length+i)).join('')+adjustments.map(adjustmentDetail).join('');
     if(consolidated.length){
       const base=sum(consolidated.map(n)),history=sum(privateRows.map(n));
       if(!privateRows.length)markup+=`<div class="abr-sales-legacy">Vendas consolidadas: ${money(base)} • sem registros individuais</div>`;
-      else if(Math.abs(base-history)>.009)markup+=`<div class="abr-sales-legacy">Conferir histórico: ${money(history)} em vendas detalhadas × ${money(base)} no fechamento consolidado.</div>`;
+      else if(Math.abs(base-history)>.009)markup+=`<div class="abr-sales-legacy">Diferença de ${money(Math.abs(base-history))}: vendas detalhadas somam ${money(round2(history+sum(rows.map(n))))} e o fechamento registra ${money(round2(base+sum(rows.map(n))))}. Fechamento preservado.</div>`;
     }
     return markup||'<div class="abr-sales-day-empty">Nenhuma venda registrada neste dia.</div>';
   }
@@ -100,22 +115,25 @@
     const {totals,unmapped}=flow(sales);
     // Os registros antigos já compõem o faturamento consolidado; detalham só os meios de recebimento.
     const oldDays=[...new Set(sales.filter(r=>r.legacy).map(r=>r.data))];
-    let fiadoHistorico=0,semHistorico=false;
+    let fiadoHistorico=0,semHistorico=false,cartaoAntigo=false,ajustes=0;
     for(const d of oldDays){
       const priv=imported(d);
       if(!priv.length){semHistorico=true;continue}
       const f=historicalFlow(priv);
+      if(priv.some(r=>Number(r.cartaoAnterior||0)>0))cartaoAntigo=true;
+      ajustes+=priv.filter(isAdjustment).length;
       for(const key of Object.keys(totals))totals[key]=round2(totals[key]+f.totals[key]);
       fiadoHistorico=round2(fiadoHistorico+f.fiado);
     }
     $('abr-sales-overview').innerHTML=`<div class="abr-sales-total"><small>${mode==='todos'?'TOTAL VENDIDO DESDE 14/11':'TOTAL VENDIDO'}</small><strong>${money(total)}</strong></div><div class="abr-sales-count"><span>${mode==='todos'?'Histórico completo':niceDate(date)}</span><b>${esc(count)}</b></div>`;
     const icons={'Pix':'◉','Espécie':'▤','Maquininha':'▣'};
-    $('abr-sales-channels').innerHTML=['Pix','Espécie','Maquininha'].map(c=>`<div class="abr-sales-channel"><span class="abr-sales-channel-label"><span aria-hidden="true">${icons[c]}</span> ${c}</span><strong>${moneySigned(totals[c])}</strong></div>`).join('');
+    $('abr-sales-channels').innerHTML=['Pix','Espécie','Maquininha'].map(c=>`<div class="abr-sales-channel"><span class="abr-sales-channel-label"><span aria-hidden="true">${icons[c]}</span> ${c}</span><strong>${moneySigned(totals[c])}</strong>${c==='Maquininha'&&cartaoAntigo?'<small class="abr-sales-card-note">Histórico sem taxas identificadas</small>':''}</div>`).join('');
     const clarity=$('abr-sales-clarity');
     const notes=[];
     if(semHistorico)notes.push('Vendas antigas sem formas de pagamento detalhadas');
     if(fiadoHistorico>0)notes.push(`Fiado histórico: ${money(fiadoHistorico)} (não recebido na data)`);
     if(unmapped)notes.push('Algumas formas de recebimento não classificadas');
+    if(ajustes)notes.push(`${ajustes} ajuste${ajustes===1?'':'s'} de conciliação sem venda comprovada`);
     clarity.textContent=notes.join(' · ');clarity.hidden=!notes.length;
     $('abr-sales-date-picker').hidden=mode!=='dia';
     $('abr-sales-date').value=date;
@@ -131,13 +149,15 @@
   }
   function detailSalesCount(){
     const rows=realSales().filter(r=>!r.legacy);
-    const importedCount=allDays().reduce((a,d)=>a+imported(d).length,0);
+    const importedCount=allDays().reduce((a,d)=>a+privateSales(d).length,0);
+    const adjustments=allDays().reduce((a,d)=>a+privateAdjustments(d).length,0);
     const count=rows.length+importedCount;
     const uncertain=realSales().some(r=>r.legacy&&!imported(r.data).length);
-    return count?`${count} vendas${uncertain?' identificadas':''}`:uncertain?'Consolidados':'0 vendas';
+    return count?`${count} vendas${adjustments?' · '+adjustments+' ajuste'+(adjustments===1?'':'s'):''}${uncertain?' identificadas':''}`:uncertain?'Consolidados':'0 vendas';
   }
   // Sobrescreve apenas a exibição, sem mexer no cálculo ou na persistência.
   renderSalesDay=paint;
+  $('abr-import-vendas').onclick=()=>$('arquivoPlanilha').click();
   $('abr-sales-date').onchange=()=>{chosen=$('abr-sales-date').value||today();mode='dia';paint()};
   $('abr-sales-today').onclick=()=>{mode='hoje';chosen=today();paint()};
   document.querySelectorAll('[data-abr-sales-period]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.abrSalesPeriod;if(mode==='hoje')chosen=today();paint()}));
