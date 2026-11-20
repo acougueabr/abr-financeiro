@@ -583,3 +583,49 @@ body.abr-v5 #movimentacao .abr-troco-duas-colunas .abr-fast-methods{grid-templat
  body.abr-v5 #movimentacao .abr-troco-duas-colunas{grid-template-columns:1fr}
 }
 @media(max-width:360px){body.abr-v5 #movimentacao .abr-quick-action{font-size:9px}}
+
+/* V6.4 — ações opcionais em texto, sem caixas decorativas. */
+body.abr-v5 #movimentacao .abr-quick-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:4px 0 5px}
+body.abr-v5 #movimentacao .abr-quick-link{display:block;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;min-height:24px!important;padding:4px 1px!important;color:#91d8c0;font-size:11px;font-weight:650;text-align:left;line-height:1.25;white-space:normal}
+body.abr-v5 #movimentacao .abr-quick-link.active{color:#6be5ad!important}
+body.abr-v5 #movimentacao .abr-quick-link:focus-visible{outline:2px solid #62d6a2;outline-offset:2px}
+body.abr-v5 #movimentacao .abr-card-controls{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:6px 0 3px}
+body.abr-v5 #movimentacao .abr-card-controls>div{min-width:0}
+body.abr-v5 #movimentacao .abr-card-caption{font-size:11px;color:#aebcc8;display:block;margin:0 0 3px}
+body.abr-v5 #movimentacao .abr-card-choice{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+body.abr-v5 #movimentacao .abr-card-choice button{padding:7px 2px;font-size:11px;min-height:32px;background:#262e38;border:1px solid #4b5866;color:#d7e1e6;border-radius:7px}
+body.abr-v5 #movimentacao .abr-card-choice button.active{background:#21513e;color:#d5ffec;border-color:#5cdbab}
+body.abr-v5 #movimentacao .abr-card-type .abr-method-select{display:none!important}
+body.abr-v5 #movimentacao .abr-fee-summary{font-size:11px;color:#73d5aa;margin:4px 0 0;line-height:1.3}
+body.abr-v5 #movimentacao .abr-fee-fold small{display:block;color:#abb8c4;font-size:11px;margin-top:5px}
+body.abr-v5 #movimentacao .abr-register-day{background:transparent;color:#69d5ab;border:1px solid #40584e;font-size:12px;padding:7px 10px}
+body.abr-v5 .abr-bottom-nav{grid-template-columns:repeat(6,minmax(0,1fr))}
+body.abr-v5 .abr-bottom-nav button{font-size:10px}
+body.abr-v5 .abr-day-sales{max-width:880px;margin:14px auto;background:#151b22;border:1px solid #3f4a56;border-radius:15px;padding:16px}
+body.abr-v5 .abr-day-sales .abr-panel-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
+body.abr-v5 .abr-day-sales .abr-panel-title h2{font-size:18px;margin:0}
+.abr-day-toolbar{display:flex;gap:9px;align-items:flex-end;margin:13px 0 9px}
+.abr-day-toolbar label{flex:1;max-width:260px;font-size:11px;margin:0}
+.abr-day-toolbar input{margin-top:4px;padding:9px 10px;font-size:14px}
+.abr-day-toolbar button{height:40px}
+.abr-day-overview{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #35404a;padding:11px 0 14px;font-size:13px;color:#aebbc6}
+.abr-day-overview strong{font-size:22px;color:#69d7aa}
+.abr-sale-record{border-bottom:1px solid #34414a}
+.abr-sale-record summary{list-style:none;display:flex;align-items:center;gap:10px;cursor:pointer;padding:14px 1px;min-height:48px}
+.abr-sale-record summary::-webkit-details-marker{display:none}
+.abr-sale-no{display:flex;align-items:center;justify-content:center;width:27px;height:27px;flex:0 0 27px;background:#26323b;color:#c6d3da;border-radius:8px;font-size:12px;font-weight:800}
+.abr-sale-name{flex:1;min-width:0;font-size:14px;color:#eef3f4;overflow-wrap:anywhere}
+.abr-sale-record summary strong{font-size:17px;white-space:nowrap;color:#f5f7f8}
+.abr-sale-chevron{font-size:16px;color:#9aaeb7;transition:transform .12s}
+.abr-sale-record[open] .abr-sale-chevron{transform:rotate(180deg)}
+.abr-sale-record-body{background:#1c252d;border-radius:9px;padding:9px 11px;margin:0 0 10px 35px;font-size:12px}
+.abr-sales-detail-line{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:5px 0;border-bottom:1px solid #32404a}
+.abr-sales-detail-line:last-child{border-bottom:0}
+.abr-sales-detail-line b{white-space:nowrap;font-size:12px}
+.abr-sales-fee,.abr-sales-change{color:#ffc28e}
+.abr-sales-due{color:#ff9ea7}
+.abr-sales-meta{color:#afbec7;font-size:12px;padding:5px 0}
+.abr-sales-legacy,.abr-sales-empty{padding:14px 4px;font-size:12px;color:#b6c2ca}
+.abr-sales-private-group{margin:13px 0;border:1px solid #3c4853;border-radius:9px;padding:10px}
+.abr-sales-private-group>summary{cursor:pointer;color:#c3ced6;font-size:12px}
+@media(max-width:650px){body.abr-v5 .abr-bottom-nav button{font-size:9px}body.abr-v5 .abr-bottom-nav button span{font-size:22px}body.abr-v5 #movimentacao .abr-quick-link{font-size:10px}body.abr-v5 #movimentacao .abr-card-choice button{font-size:10px}body.abr-v5 .abr-day-sales{padding:12px}body.abr-v5 .abr-sale-record summary strong{font-size:15px}}

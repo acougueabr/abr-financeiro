@@ -19,12 +19,12 @@
     if(name==='mais'){
       document.querySelectorAll('#abr-more-hub [data-abr-sub]').forEach(b=>b.classList.toggle('abr-selected',b.dataset.abrSub===sub));
     }
-    const label={inicio:'Início',registrar:'Registrar',pendencias:'Débitos',historico:'Histórico',mais:'Mais'}[name];
+    const label={inicio:'Início',registrar:'Registrar',vendasdia:'Vendas do dia',pendencias:'Débitos',historico:'Histórico',mais:'Mais'}[name];
     document.title=`ABR Financeiro • ${label||'Início'}`;
     window.scrollTo({top:0,behavior:'instant'});
     try {history.replaceState(null,'','#'+(name==='mais'&&sub?sub:name));}catch{}
   };
-  const knownPages=new Set(['inicio','registrar','pendencias','historico','mais']);
+  const knownPages=new Set(['inicio','registrar','vendasdia','pendencias','historico','mais']);
   function goto(name,sub){show(knownPages.has(name)?name:'inicio',sub||null)}
   function quick(type, preset=''){
     $('tipo').value=type;
@@ -511,6 +511,7 @@
   });
   document.querySelectorAll('[data-abr-open-receivable]').forEach(b=>b.addEventListener('click',()=>{goto('inicio');$('abr-select-receivables').scrollIntoView({behavior:'smooth',block:'center'})}));
   document.querySelectorAll('.abr-top-nav [data-abr-go]').forEach(b=>b.addEventListener('click',()=>goto(b.dataset.abrGo)));
+  document.querySelectorAll('#movimentacao [data-abr-go]').forEach(b=>b.addEventListener('click',()=>goto(b.dataset.abrGo)));
   $('abr-back-register').addEventListener('click',()=>goto('inicio'));
   $('abr-reconcile-open').onclick=openReconcile;
   $('abr-reconcile-close').onclick=closeReconcile;
@@ -604,6 +605,7 @@
   $('abr-fast-week').onclick=()=>quick('despesa','salario');
   $('abr-fast-scale').onclick=()=>quick('investimento','balanca');
   $('abr-transfer-form').addEventListener('submit',transfer);
+  $('abr-vendas-dia').addEventListener('click',e=>{const b=e.target.closest('[data-abr-go]');if(b)goto(b.dataset.abrGo)});
   $('abr-home').addEventListener('click',e=>{
     const card=e.target.closest('[data-abr-card-action]');
     if(card){
@@ -618,7 +620,7 @@
     const pay=e.target.closest('[data-abr-confirm]');if(pay){openPayment({id:pay.dataset.abrConfirm,mode:'confirm'});return}
     const buy=e.target.closest('[data-abr-buy]');if(buy){quick('compra');$('produtoCompra').value=buy.dataset.abrBuy;updatePurchasePreview()}
   });
-  $('abr-more-hub').addEventListener('click',e=>{const b=e.target.closest('[data-abr-sub]');if(b)goto('mais',b.dataset.abrSub)});
+  $('abr-more-hub').addEventListener('click',e=>{const go=e.target.closest('[data-abr-go]');if(go){goto(go.dataset.abrGo);return}const b=e.target.closest('[data-abr-sub]');if(b)goto('mais',b.dataset.abrSub)});
   $('painelFornecedores').addEventListener('click',e=>{
     if(e.target.closest('[data-buy-supplier],[data-pay-supplier]'))setTimeout(()=>goto('registrar'),0);
   });

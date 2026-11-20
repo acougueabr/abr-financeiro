@@ -148,7 +148,7 @@ function render(){
   el('filtroBtn').textContent=recentes?'Ver todos':'Ver só recentes';
   el('historico').innerHTML=(recentes?filteredHistory.slice(0,8):filteredHistory).map(r=>{const extra=r.tipo==='venda'&&Array.isArray(r.itens)?`<br><small>${r.itens.map(i=>`${esc(i.produto)}${i.detalhe?' — '+esc(i.detalhe):''}: ${money(i.total)}${Number(i.quantidade)>0?' ('+fmtQty(i.quantidade,i.unidade)+')':''}`).join(' • ')}${r.troco?.valor?` • Troco: ${money(r.troco.valor)} (${trocoPartes(r.troco).map(p=>`${money(p.valor)} em ${esc(p.conta)}`).join(' + ')})`:''}</small>`:r.tipo==='compra'&&r.precoVendaRef?`<br><small>Venda referência: ${money(r.precoVendaRef)}/${esc(r.unidade||'kg')}</small>`:'';
     return `<div class="record"><div class="line"><strong class="scrollText">${esc(r.descricao)}</strong><strong>${r.tipo==='estoque'?fmtQty(r.quantidade,r.unidade):money(n(r))}</strong></div><small>${niceDate(r.data)} • ${esc(r.tipo)} • ${esc(r.status||'')} ${r.legacy?'• Saldo inicial':''} ${r.vinculo?'• vinculado':''}</small>${extra}${r.legacy?'<small class="muted"> • Inicial protegido</small>':`<div class="recordActions"><button type="button" class="secondary smallBtn deleteRecord" data-delete="${esc(r.id)}">Excluir lançamento</button></div>`}</div>`}).join('')||'<p class="hint">Nenhuma movimentação encontrada nesse filtro.</p>';
-  refreshLinks();updateDayStatus();renderSpreadsheetHistory();
+  refreshLinks();updateDayStatus();renderSpreadsheetHistory();renderSalesDay();
 }
 function supplierStatus(r){
   const remaining=r.status==='pendente'?restante(r):0;
@@ -245,9 +245,26 @@ function saleTotal(){return sum(getItems().map(i=>i.total))}
 function paymentAccount(choice){
   return ({'Espécie':'Espécie cédulas','Moeda':'Espécie moedas','Pix':'Pix','Maquininha':'Maquininha'})[choice]||'';
 }
+// Mercado Pago: taxas informadas pelo estabelecimento, recebimento na hora.
+// Point: débito 1,67%; crédito à vista 3,89%.
+// Tap: débito 0,89%; crédito à vista 3,09%.
+const ABR_CARD_RATES={Point:{'Débito':1.67,'Crédito à vista':3.89},Tap:{'Débito':0.89,'Crédito à vista':3.09}};
+function cardRate(i){
+  const channel=el('canal'+i).value,kind=el('cartao'+i).value;
+  return ABR_CARD_RATES[channel]?.[kind]??0;
+}
+function syncCardFee(i){
+  const field=el('taxa'+i),isCard=el('metodo'+i).value==='Maquininha';
+  const preview=el('abr-fee-preview'+i);
+  if(!isCard){field.value='';delete field.dataset.userEdited;preview.textContent='';return}
+  const gross=round2(num('recebido'+i)),rate=cardRate(i);
+  if(!field.dataset.userEdited)field.value=(Math.round(cents(gross)*rate/100)/100).toFixed(2);
+  const fee=round2(num('taxa'+i));
+  preview.textContent=`${rate.toFixed(2).replace('.',',')}% • Taxa ${money(fee)} • Líquido ${money(Math.max(0,round2(gross-fee)))}`;
+}
 function paymentEntry(i){
-  const choice=el('metodo'+i).value;
-  return {metodo:choice==='Maquininha'?el('cartao'+i).value:choice==='Pix'?'Pix':'Dinheiro',conta:paymentAccount(choice),valor:round2(num('recebido'+i)),taxa:round2(num('taxa'+i))};
+  const choice=el('metodo'+i).value,isCard=choice==='Maquininha';
+  return {metodo:isCard?el('cartao'+i).value:choice==='Pix'?'Pix':'Dinheiro',conta:paymentAccount(choice),valor:round2(num('recebido'+i)),taxa:isCard?round2(num('taxa'+i)):0,...(isCard?{canal:el('canal'+i).value,taxaPercentual:cardRate(i),taxaAutomatica:!el('taxa'+i).dataset.userEdited}: {})};
 }
 function updatePaymentFields(i){
   const choice=el('metodo'+i).value;
@@ -261,14 +278,23 @@ function updatePaymentFields(i){
   el('cartaoBox'+i).classList.toggle('hidden',!isCard);
   const fee=el('taxa'+i),wrap=fee.closest('.abr-fee-fold');
   wrap.classList.toggle('hidden',!isCard);
-  if(!isCard){fee.value='';wrap.open=false}
+  if(!isCard){fee.value='';delete fee.dataset.userEdited;wrap.open=false}
+  syncCardFee(i);
+}
+function syncCardButtons(i){
+  for(const [attr,value] of [['data-abr-card-kind',el('cartao'+i).value],['data-abr-card-channel',el('canal'+i).value]]){
+    document.querySelectorAll('['+attr+']').forEach(b=>{
+      const active=b.getAttribute(attr)===i+':'+value;
+      b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));
+    });
+  }
 }
 function updateSecondPaymentLayout(){
   const coin=el('metodo1').value==='Moeda';
   if(coin){el('pagamentoMisto').checked=true;if(el('metodo2').value==='Moeda')el('metodo2').value='Espécie'}
   el('pagamentoMistoRow').classList.toggle('hidden',coin);
   el('segundaForma').classList.toggle('hidden',!el('pagamentoMisto').checked);
-  updatePaymentFields(1);updatePaymentFields(2);
+  updatePaymentFields(1);updatePaymentFields(2);syncCardButtons(1);syncCardButtons(2);
 }
 function fillRemainderIfCoins(){
   if(el('metodo1').value!=='Moeda'||!el('pagamentoMisto').checked||el('recebido2').dataset.userEdited)return;
@@ -323,6 +349,7 @@ function updateSalePreview(autofill=false){
   el('pagamentoVenda').classList.toggle('abr-has-troco',!el('fiadoVenda').checked&&sum([num('recebido1'),el('pagamentoMisto').checked?num('recebido2'):0])-total>0.005);
   if(autofill&&!el('recebido1').dataset.userEdited&&!el('fiadoVenda').checked)el('recebido1').value=total?total.toFixed(2):'';
   fillRemainderIfCoins();
+  syncCardFee(1);syncCardFee(2);
   const bruto=el('fiadoVenda').checked?0:sum([num('recebido1'),el('pagamentoMisto').checked?num('recebido2'):0]);
   const troco=Math.max(0,round2(bruto-total));const falta=Math.max(0,round2(total-bruto));
   el('trocoPrevisto').textContent=money(total?troco:0);
@@ -365,6 +392,7 @@ function toggleFormType(){
 function resetForm(){
   el('form').reset();el('data').value=today();if(el('abr-date-label'))el('abr-date-label').textContent='Hoje';el('itensVenda').innerHTML='';addItem();
   delete el('recebido1').dataset.userEdited;delete el('recebido2').dataset.userEdited;
+  for(const i of [1,2]){delete el('taxa'+i).dataset.userEdited;el('canal'+i).value='Point';el('cartao'+i).value='Débito';el('taxa'+i).value='';el('taxa'+i).closest('.abr-fee-fold').open=false;syncCardButtons(i)}
   el('pagamentoVenda').classList.remove('hidden');el('metodo1').value='Espécie';el('metodo2').value='Espécie';
   el('dividirTroco').checked=false;el('trocoParte1').value='';el('contaTroco').value='Espécie cédulas';el('contaTroco2').value='Espécie moedas';
   el('abr-venda-extras').open=false;
@@ -442,6 +470,34 @@ function removeTransaction(id){
   state.registros=old.filter(x=>!idsToRemove.has(x.id));
   if(!save()){state.registros=old;return}
   render();alert('Movimentação excluída e indicadores recalculados.');
+}
+function renderSalesDay(){
+  const date=el('abr-sales-date')?.value||today();
+  const list=el('abr-sales-list'),overview=el('abr-sales-overview');if(!list||!overview)return;
+  const rows=state.registros.filter(r=>r.tipo==='venda'&&!r.legacy&&!r.semFaturamento&&r.data===date).sort((a,b)=>(a.criadoEm||'').localeCompare(b.criadoEm||''));
+  const amount=sum(rows.map(n));
+  overview.innerHTML=`<span>${rows.length} venda${rows.length===1?'':'s'}</span><strong>${money(amount)}</strong>`;
+  const name=account=>({'Espécie cédulas':'Cédulas','Espécie moedas':'Moedas','Maquininha':'Maquininha','Pix':'Pix'})[account]||account||'Não informado';
+  list.innerHTML=rows.map((r,index)=>{
+    const parts=Array.isArray(r.recebimentos)?r.recebimentos:[];
+    const received=parts.map(p=>`<div class="abr-sales-detail-line"><span>${esc(name(p.conta))}${p.conta==='Maquininha'?` • ${esc(p.canal||'Cartão')} / ${esc(p.metodo||'')}`:''}</span><b>${money(p.valor)}</b></div>${p.taxa>0?`<div class="abr-sales-detail-line abr-sales-fee"><span>Taxa descontada</span><b>−${money(p.taxa)}</b></div>`:''}`).join('');
+    const change=trocoPartes(r.troco).map(p=>`<div class="abr-sales-detail-line abr-sales-change"><span>Troco • ${esc(name(p.conta))}</span><b>−${money(p.valor)}</b></div>`).join('');
+    const items=Array.isArray(r.itens)?r.itens:[];
+    const title=items.map(i=>i.produto).filter(Boolean).join(' + ')||r.descricao||'Venda';
+    const itemRows=items.length>1?items.map(i=>`<div class="abr-sales-detail-line"><span>${esc(i.produto||'Mercadoria')}${i.detalhe?' · '+esc(i.detalhe):''}</span><b>${money(i.total)}</b></div>`).join(''):'';
+    const client=r.pessoa?`<div class="abr-sales-meta">Cliente: ${esc(r.pessoa)}</div>`:'';
+    const note=r.observacao?`<div class="abr-sales-meta">${esc(r.observacao)}</div>`:'';
+    const status=restante(r)>0.005?`<div class="abr-sales-detail-line abr-sales-due"><span>Fiado a receber</span><b>${money(restante(r))}</b></div>`:'';
+    return `<details class="abr-sale-record"><summary><span class="abr-sale-no">${index+1}</span><span class="abr-sale-name">${esc(title)}</span><strong>${money(r.valor)}</strong><span class="abr-sale-chevron">⌄</span></summary><div class="abr-sale-record-body">${itemRows}${received||'<div class="abr-sales-meta">Sem pagamento registrado</div>'}${change}${status}${client}${note}</div></details>`;
+  }).join('');
+  const consolidated=state.registros.filter(r=>r.tipo==='venda'&&r.legacy&&!r.semFaturamento&&r.data===date);
+  if(consolidated.length){list.insertAdjacentHTML('beforeend',`<div class="abr-sales-legacy">${money(sum(consolidated.map(n)))} em vendas antigas consolidadas (sem registros individuais).</div>`)}
+  const privateRows=Array.isArray(state.historicoPlanilha)?state.historicoPlanilha.filter(r=>r.data===date):[];
+  if(privateRows.length){
+    const details=privateRows.map((r,i)=>`<details class="abr-sale-record abr-sale-private"><summary><span class="abr-sale-no">${i+1}</span><span class="abr-sale-name">${esc(r.produto||'Mercadoria')}</span><strong>${money(r.valor)}</strong><span class="abr-sale-chevron">⌄</span></summary><div class="abr-sale-record-body">${r.cliente?`<div class="abr-sales-meta">${esc(r.cliente)}</div>`:''}${r.observacoes?`<div class="abr-sales-meta">${esc(r.observacoes)}</div>`:''}</div></details>`).join('');
+    list.insertAdjacentHTML('beforeend',`<details class="abr-sales-private-group"><summary>Planilha privada • ${privateRows.length} vendas (somente conferência)</summary><div>${details}</div></details>`);
+  }
+  if(!rows.length&&!consolidated.length&&!privateRows.length)list.innerHTML='<div class="abr-sales-empty">Nenhuma venda registrada nesta data.</div>';
 }
 function renderDailyMethods(){
   const date=el('dataRelatorio').value||today();
@@ -525,7 +581,7 @@ async function importJSON(e){
   }catch(err){alert('Backup inválido: '+err.message)}finally{e.target.value=''}
 }
 function bind(){
-  el('data').value=today();el('diaFechamento').value='2026-11-18';el('dataRelatorio').value=today();el('dataRelatorio').onchange=renderDailyMethods;
+  el('data').value=today();el('abr-sales-date').value=today();el('abr-sales-date').onchange=renderSalesDay;el('abr-sales-today').onclick=()=>{el('abr-sales-date').value=today();renderSalesDay()};el('diaFechamento').value='2026-11-18';el('dataRelatorio').value=today();el('dataRelatorio').onchange=renderDailyMethods;
   el('dias').addEventListener('click',e=>{const b=e.target.closest('[data-view-day]');if(!b)return;el('dataRelatorio').value=b.dataset.viewDay;renderDailyMethods();el('resumoDiario').scrollIntoView({behavior:'smooth',block:'start'})});
   el('produtoCompra').innerHTML=productOptions();el('produtoEstoque').innerHTML=productOptions();
   el('produtoCompra').addEventListener('change',()=>{el('fornecedorCompra').value=state.fornecedores[el('produtoCompra').value]||''});
@@ -578,7 +634,12 @@ function bind(){
   el('itensVenda').addEventListener('change',e=>{if(e.target.matches('.itemProduto'))updateSalePreview(true)});
   el('recebido1').addEventListener('input',()=>{el('recebido1').dataset.userEdited='1';updateSalePreview()});
   el('recebido2').addEventListener('input',()=>{el('recebido2').dataset.userEdited='1';updateSalePreview()});
-  for(const id of ['taxa1','taxa2'])el(id).addEventListener('input',()=>updateSalePreview());
+  for(const id of ['taxa1','taxa2'])el(id).addEventListener('input',e=>{e.target.dataset.userEdited='1';updateSalePreview()});
+  document.querySelectorAll('[data-abr-card-kind],[data-abr-card-channel]').forEach(b=>b.addEventListener('click',()=>{
+    const raw=b.dataset.abrCardKind||b.dataset.abrCardChannel;const colon=raw.indexOf(':');const i=Number(raw.slice(0,colon)),value=raw.slice(colon+1);
+    const target=el((b.dataset.abrCardKind?'cartao':'canal')+i);target.value=value;
+    delete el('taxa'+i).dataset.userEdited;syncCardButtons(i);updateSalePreview();
+  }));
   el('fiadoVenda').onchange=()=>{
     el('pagamentoVenda').classList.toggle('hidden',el('fiadoVenda').checked);
     if(el('fiadoVenda').checked){el('abr-venda-extras').open=true;el('abr-client-toggle').setAttribute('aria-expanded','true');el('abr-client-toggle').classList.add('active')}
@@ -618,7 +679,7 @@ function bind(){
     updateSecondPaymentLayout();updateSalePreview();
   };
   el('metodo2').onchange=()=>{updateSecondPaymentLayout();updateSalePreview()};
-  for(const i of [1,2])el('cartao'+i).onchange=updateSalePreview;
+  for(const i of [1,2]){el('cartao'+i).onchange=()=>{delete el('taxa'+i).dataset.userEdited;syncCardButtons(i);updateSalePreview()};el('canal'+i).onchange=()=>{delete el('taxa'+i).dataset.userEdited;syncCardButtons(i);updateSalePreview()}}
   updateSecondPaymentLayout();
   for(const id of ['qtdCompra','custoCompra','precoVendaCompra','descontoCompra','produtoCompra'])el(id).addEventListener('input',updatePurchasePreview);
   el('form').onsubmit=submitForm;
@@ -627,4 +688,4 @@ function bind(){
   toggleFormType();updateSalePreview();updatePurchasePreview();
 }
 initialize();bind();render();
-if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=630').catch(()=>{});
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=640').catch(()=>{});
