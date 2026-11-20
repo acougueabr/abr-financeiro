@@ -1,0 +1,52 @@
+/* ABR Financeiro v6.5 — histórico de vendas compacto, sem alterar o motor financeiro. */
+body.abr-v5 .abr-day-sales{max-width:880px}
+.abr-sales-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:14px 0 13px;padding:4px;border-radius:11px;background:#0d1218;border:1px solid #303c47}
+body.abr-v5 .abr-sales-tabs button{padding:10px 5px;font-size:12px;min-width:0;color:#b9c5cf;background:transparent;border:1px solid transparent;border-radius:8px;font-weight:700;line-height:1.2}
+body.abr-v5 .abr-sales-tabs button.active{background:#27383a;border-color:#477b70;color:#76ddb6}
+body.abr-v5 .abr-sales-date-picker{margin:0 0 12px}
+body.abr-v5 .abr-sales-date-picker[hidden]{display:none!important}
+body.abr-v5 .abr-day-overview{padding:4px 0 13px;align-items:flex-end}
+.abr-sales-total{display:flex;flex-direction:column;gap:4px}
+.abr-sales-total small{font-size:11px;color:#acbac5;font-weight:600}
+.abr-sales-total strong{font-size:clamp(23px,3vw,30px)!important;line-height:1.1}
+.abr-sales-count{display:flex;flex-direction:column;gap:4px;align-items:flex-end;text-align:right;color:#aebbc6;font-size:11px}
+.abr-sales-count b{color:#e7edef;font-size:13px}
+.abr-sales-channels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0 8px}
+.abr-sales-channel{display:flex;flex-direction:column;align-items:flex-start;gap:6px;background:#24263a;border:1px solid #504d79;border-radius:10px;padding:11px 12px;min-width:0}
+.abr-sales-channel-label{font-size:12px;font-weight:700;color:#c3b9ff;display:flex;align-items:center;gap:6px}
+.abr-sales-channel strong{font-size:clamp(15px,2vw,20px);color:#f1f1f8;overflow-wrap:anywhere;line-height:1.1}
+.abr-sales-clarity{font-size:11px;color:#b9c5ce;margin:6px 1px 12px;line-height:1.35}
+.abr-sales-clarity[hidden]{display:none!important}
+.abr-sales-history-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:20px;padding-bottom:6px}
+.abr-sales-history-head h3{font-size:13px;margin:0;color:#f1f3f4}
+.abr-sales-history-head span{font-size:10px;color:#98a7b4}
+.abr-sales-day{border-bottom:1px solid #34404b}
+.abr-sales-day>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:52px;padding:9px 2px}
+.abr-sales-day>summary::-webkit-details-marker{display:none}
+.abr-sales-day-date{font-weight:800;color:#edf3f6;white-space:nowrap;font-size:14px;min-width:50px}
+.abr-sales-day-count{font-size:12px;color:#aebcc7;flex:1}
+.abr-sales-day-total{font-size:14px;color:#e7eff2;font-weight:750;white-space:nowrap}
+.abr-sales-day-chevron{color:#acb9c3;font-size:16px;transition:transform .12s}
+.abr-sales-day[open]>.abr-sales-day-summary .abr-sales-day-chevron{transform:rotate(180deg)}
+.abr-sales-day[open]>.abr-sales-day-summary .abr-sales-day-date{color:#70d9ad}
+.abr-sales-day-content{margin:0 0 12px 0;padding:2px 10px 8px;background:#1a222b;border-radius:10px}
+.abr-sales-day-content .abr-sale-record summary{min-height:43px;padding:10px 0}
+.abr-sales-day-content .abr-sale-record-body{margin-left:0}
+.abr-sales-day-empty{padding:12px 2px;color:#aebcc7;font-size:12px}
+.abr-sales-day-off{opacity:.67}
+.abr-sales-day-off .abr-sales-day-total{color:#b2bbc3;font-size:12px}
+.abr-sales-cancel-row{display:flex;justify-content:flex-end;padding-top:9px}
+body.abr-v5 .abr-sales-cancel-row button{padding:6px 9px;font-size:11px;color:#ff9da4;background:transparent;border:1px solid #71414a;border-radius:7px}
+.abr-sales-private-group{margin:8px 0}
+@media(max-width:650px){
+ body.abr-v5 .abr-day-sales{padding:13px}
+ .abr-sales-channels{gap:6px}
+ .abr-sales-channel{padding:10px 7px;gap:8px}
+ .abr-sales-channel-label{font-size:10px;gap:4px}
+ .abr-sales-channel strong{font-size:15px}
+ .abr-sales-day>summary{gap:6px}
+ .abr-sales-day-date{font-size:13px;min-width:45px}
+ .abr-sales-day-count{font-size:11px}
+ .abr-sales-day-total{font-size:13px}
+ .abr-sales-history-head span{font-size:9px}
+}
