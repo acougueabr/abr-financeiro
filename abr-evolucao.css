@@ -1,0 +1,62 @@
+/* ABR Financeiro 6.6.0 — painel de compras x vendas, somente leitura. */
+.abr-business-chart{margin-top:14px;padding:17px 17px 14px;background:#10161c;border-color:#42505e}
+.abr-business-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.abr-business-head h2{margin:0;font-size:19px;font-weight:850;letter-spacing:.2px}
+.abr-business-head p{margin:5px 0 0;color:#9faebb;font-size:12px;line-height:1.5}
+.abr-business-range{display:flex;gap:3px;padding:3px;border:1px solid #394755;border-radius:10px;background:#0c1218}
+.abr-business-range button{font-size:12px;line-height:1;padding:10px 12px;background:transparent;border:1px solid transparent;border-radius:7px;color:#d9e2e9;white-space:nowrap}
+.abr-business-range button.active{background:#1c3834;border-color:#438a7b;color:#71e5c1}
+.abr-business-range button:focus-visible,.abr-business-plot button:focus-visible{outline:2px solid #b2ffe1;outline-offset:2px}
+.abr-business-numbers{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:17px 0 12px}
+.abr-business-number{position:relative;display:flex;flex-direction:column;gap:7px;min-width:0;border:1px solid #3d4a58;background:#192129;border-radius:11px;padding:14px 15px 14px 21px}
+.abr-business-number .abr-business-marker{position:absolute;top:13px;bottom:13px;left:10px;width:3px;border-radius:5px}
+.abr-business-buy .abr-business-marker{background:#ff6675}
+.abr-business-sell .abr-business-marker{background:#49daa5}
+.abr-business-number small{font-size:11px;font-weight:800;letter-spacing:.15px;color:#c6d0db}
+.abr-business-number strong{font-size:clamp(21px,3.2vw,30px);font-weight:900;line-height:1.2;white-space:nowrap;letter-spacing:-.4px}
+.abr-business-buy strong{color:#ff6876}.abr-business-sell strong{color:#4ae1aa}
+.abr-business-story{font-size:15px;line-height:1.55;font-weight:650;color:#e4ebf0;border-left:3px solid #e7ad5b;background:#222320;padding:11px 12px;border-radius:7px}
+.abr-business-story.abr-business-good{border-left-color:#48d6a3;background:#162820}
+.abr-business-coverage{margin:14px 0 17px}
+.abr-business-coverage-head{display:flex;justify-content:space-between;align-items:center;gap:10px;color:#bac8d4;font-size:12px;margin-bottom:7px}
+.abr-business-coverage-head b{font-size:15px;color:#f3f7f9}
+.abr-business-track{height:10px;background:#2a3540;border-radius:20px;overflow:hidden}
+.abr-business-track>div{height:100%;width:0;background:linear-gradient(90deg,#318d76,#5be6ae);border-radius:20px;transition:width .2s ease}
+.abr-business-legend{display:flex;gap:15px;align-items:center;flex-wrap:wrap;font-size:12px;color:#d1dbe4;margin:0 0 3px}
+.abr-business-legend span{display:inline-flex;align-items:center;gap:7px}
+.abr-business-legend i{display:inline-block;width:22px;height:0;border-top:3px solid;border-radius:4px}
+.abr-business-legend-buy{border-color:#ff6675!important}.abr-business-legend-sell{border-color:#49daa5!important}
+.abr-business-plot{width:100%;margin:5px 0 3px;overflow:hidden}
+.abr-business-plot svg{display:block;width:100%;height:auto;overflow:visible}
+.abr-business-plot svg .abr-business-hit{cursor:pointer;fill:transparent}
+.abr-business-plot svg .abr-business-hit:focus{outline:none}
+.abr-business-day{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px 14px;background:#19232d;border:1px solid #425464;border-radius:10px;padding:11px 13px;margin-top:8px}
+.abr-business-day-title{display:flex;flex-direction:column;gap:4px;min-width:0}
+.abr-business-day-title b{font-size:13px;color:#eaf2f7}
+.abr-business-day-title small{font-size:11px;color:#a8b8c6}
+.abr-business-day-value{display:flex;flex-direction:column;gap:3px;text-align:right;white-space:nowrap}
+.abr-business-day-value span{font-size:10px;color:#bdcad5}
+.abr-business-day-value strong{font-size:15px}
+.abr-business-day-value.buy strong{color:#ff8290}.abr-business-day-value.sell strong{color:#67e4b6}
+.abr-business-warning{font-size:12px;line-height:1.55;color:#aebcc8;margin:12px 0 4px}
+.abr-business-warning b{color:#e3eaf0}
+.abr-business-method{margin-top:10px;border-top:1px solid #33414e;padding-top:9px;font-size:12px;color:#aab8c4;line-height:1.65}
+.abr-business-method summary{cursor:pointer;font-size:12px;font-weight:700;color:#83e3c0;list-style-position:inside}
+.abr-business-method p{margin:8px 0 0}
+@media(max-width:680px){
+ .abr-business-chart{padding:13px 11px}
+ .abr-business-head h2{font-size:17px}
+ .abr-business-head p{font-size:11px}
+ .abr-business-range{width:100%;justify-content:stretch}
+ .abr-business-range button{flex:1}
+ .abr-business-numbers{gap:7px;margin-top:13px}
+ .abr-business-number{padding:12px 8px 12px 17px;gap:6px}
+ .abr-business-number .abr-business-marker{left:7px}
+ .abr-business-number small{font-size:9px;line-height:1.35}
+ .abr-business-number strong{font-size:clamp(16px,4.2vw,23px)}
+ .abr-business-story{font-size:13px}
+ .abr-business-legend{font-size:11px;gap:12px}
+ .abr-business-day{grid-template-columns:1fr 1fr;gap:9px;padding:10px}
+ .abr-business-day-title{grid-column:1/-1}
+ .abr-business-day-value{text-align:left}
+}
