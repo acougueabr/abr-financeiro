@@ -1,4 +1,4 @@
-const CACHE='abr-v621-20261120';
+const CACHE='abr-v630-20261120';
 const FILES=['./','./index.html','./app.js','./cloud.js','./config.js','./abr-v5.js','./abr-v5.css','./abr-dia.js','./abr-dia.css','./abr-caixa.css','./manifest.webmanifest','./icon.svg','./icon-180.png','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil((async()=>{const keys=await caches.keys();await Promise.all(keys.filter(k=>k.startsWith('abr-')&&k!==CACHE).map(k=>caches.delete(k)));await self.clients.claim()})())});

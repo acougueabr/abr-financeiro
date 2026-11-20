@@ -251,10 +251,11 @@ function paymentEntry(i){
 }
 function updatePaymentFields(i){
   const choice=el('metodo'+i).value;
-  if(i===1){document.querySelectorAll('[data-abr-fast-method]').forEach(b=>{
-    const active=b.dataset.abrFastMethod===choice;
+  const attr=i===1?'data-abr-fast-method':'data-abr-fast-method2';
+  document.querySelectorAll('['+attr+']').forEach(b=>{
+    const active=b.getAttribute(attr)===choice;
     b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));
-  });}
+  });
   el('conta'+i).value=paymentAccount(choice);
   const isCard=choice==='Maquininha';
   el('cartaoBox'+i).classList.toggle('hidden',!isCard);
@@ -274,6 +275,15 @@ function fillRemainderIfCoins(){
   const total=saleTotal();
   const remaining=Math.max(0,round2(total-num('recebido1')));
   el('recebido2').value=total>0?remaining.toFixed(2):'';
+}
+function syncTrocoButtons(){
+  for(const [id,attribute] of [['contaTroco','data-abr-change-method'],['contaTroco2','data-abr-change-method2']]){
+    const chosen=el(id).value;
+    document.querySelectorAll('['+attribute+']').forEach(b=>{
+      const active=b.getAttribute(attribute)===chosen;
+      b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));
+    });
+  }
 }
 // Divisão de troco é opcional. A segunda parcela é calculada, evitando erro de soma.
 function showTrocoSplit(troco){
@@ -305,6 +315,7 @@ function saleTrocoObject(total){
   return {valor:total,conta:split.partes[0].conta,partes:split.partes};
 }
 function updateSalePreview(autofill=false){
+  syncTrocoButtons();
   const items=getItems();const invalid=items.some(i=>!Number.isFinite(i.total)||i.total<=0);
   const total=invalid?0:sum(items.map(i=>i.total));
   el('totalVenda').textContent=money(total);
@@ -356,6 +367,8 @@ function resetForm(){
   delete el('recebido1').dataset.userEdited;delete el('recebido2').dataset.userEdited;
   el('pagamentoVenda').classList.remove('hidden');el('metodo1').value='Espécie';el('metodo2').value='Espécie';
   el('dividirTroco').checked=false;el('trocoParte1').value='';el('contaTroco').value='Espécie cédulas';el('contaTroco2').value='Espécie moedas';
+  el('abr-venda-extras').open=false;
+  for(const id of ['abr-first-cut','abr-client-toggle']){el(id).setAttribute('aria-expanded','false');el(id).classList.remove('active')}
   updateSecondPaymentLayout();
   el('tipo').value='venda';toggleFormType();updateSalePreview();updatePurchasePreview();
 }
@@ -538,16 +551,58 @@ function bind(){
   el('importarPlanilha').onclick=()=>el('arquivoPlanilha').click();el('arquivoPlanilha').onchange=importSpreadsheetHistory;
   el('alternarParcial').onclick=()=>{const d=el('diaFechamento').value;if(!d)return;state.parcial=state.parcial.includes(d)?state.parcial.filter(x=>x!==d):[...state.parcial,d];save();render()};
   el('diaFechamento').onchange=updateDayStatus;
+  el('abr-first-cut').onclick=()=>{
+    const details=el('itensVenda').querySelector('.item .abr-item-opcional');
+    if(!details)return;
+    details.open=!details.open;
+    el('abr-first-cut').setAttribute('aria-expanded',String(details.open));
+    el('abr-first-cut').classList.toggle('active',details.open);
+    if(details.open)details.querySelector('input')?.focus({preventScroll:true});
+  };
+  el('abr-client-toggle').onclick=()=>{
+    const details=el('abr-venda-extras');details.open=!details.open;
+    el('abr-client-toggle').setAttribute('aria-expanded',String(details.open));
+    el('abr-client-toggle').classList.toggle('active',details.open);
+  };
+  el('abr-venda-extras').addEventListener('toggle',()=>{
+    const opened=el('abr-venda-extras').open;
+    el('abr-client-toggle').setAttribute('aria-expanded',String(opened));
+    el('abr-client-toggle').classList.toggle('active',opened);
+  });
   el('adicionarItem').onclick=()=>{addItem();el('itensVenda').querySelectorAll('.removeItem').forEach(b=>b.classList.remove('hidden'));updateSalePreview(true)};
-  el('itensVenda').addEventListener('click',e=>{if(!e.target.classList.contains('removeItem'))return;const items=el('itensVenda').querySelectorAll('.item');if(items.length<=1)return;e.target.closest('.item').remove();if(el('itensVenda').children.length===1)el('itensVenda').querySelector('.removeItem').classList.add('hidden');updateSalePreview(true)});
+  el('itensVenda').addEventListener('click',e=>{if(!e.target.classList.contains('removeItem'))return;const items=el('itensVenda').querySelectorAll('.item');if(items.length<=1)return;e.target.closest('.item').remove();if(el('itensVenda').children.length===1)el('itensVenda').querySelector('.removeItem').classList.add('hidden');
+    const firstOpen=Boolean(el('itensVenda').querySelector('.item .abr-item-opcional')?.open);
+    el('abr-first-cut').setAttribute('aria-expanded',String(firstOpen));el('abr-first-cut').classList.toggle('active',firstOpen);
+    updateSalePreview(true)});
   el('itensVenda').addEventListener('input',e=>{if(e.target.matches('.itemValor,.itemDetalhe'))updateSalePreview(true)});
   el('itensVenda').addEventListener('change',e=>{if(e.target.matches('.itemProduto'))updateSalePreview(true)});
   el('recebido1').addEventListener('input',()=>{el('recebido1').dataset.userEdited='1';updateSalePreview()});
   el('recebido2').addEventListener('input',()=>{el('recebido2').dataset.userEdited='1';updateSalePreview()});
   for(const id of ['taxa1','taxa2'])el(id).addEventListener('input',()=>updateSalePreview());
-  el('fiadoVenda').onchange=()=>{el('pagamentoVenda').classList.toggle('hidden',el('fiadoVenda').checked);if(el('fiadoVenda').checked)el('abr-venda-extras').open=true;updateSalePreview()};
+  el('fiadoVenda').onchange=()=>{
+    el('pagamentoVenda').classList.toggle('hidden',el('fiadoVenda').checked);
+    if(el('fiadoVenda').checked){el('abr-venda-extras').open=true;el('abr-client-toggle').setAttribute('aria-expanded','true');el('abr-client-toggle').classList.add('active')}
+    updateSalePreview();
+  };
   el('pagamentoMisto').onchange=()=>{updateSecondPaymentLayout();updateSalePreview()};
-  el('contaTroco').onchange=updateSalePreview;
+  // Second payment and both change forms use the same button UI as the first payment.
+  for(const [selector,selectId] of [
+    ['[data-abr-fast-method2]','metodo2'],
+    ['[data-abr-change-method]','contaTroco'],
+    ['[data-abr-change-method2]','contaTroco2']
+  ]){
+    document.querySelectorAll(selector).forEach(b=>b.addEventListener('click',()=>{
+      const select=el(selectId);
+      select.value=b.getAttribute(selector.slice(1,-1));
+      select.dispatchEvent(new Event('change',{bubbles:true}));
+    }));
+  }
+  el('contaTroco').onchange=()=>{
+    if(el('dividirTroco').checked&&el('contaTroco2').value===el('contaTroco').value){
+      el('contaTroco2').value=['Espécie cédulas','Espécie moedas','Pix'].find(x=>x!==el('contaTroco').value);
+    }
+    updateSalePreview();
+  };
   el('dividirTroco').onchange=()=>{el('trocoParte1').value='';updateSalePreview()};
   el('trocoParte1').oninput=updateSalePreview;
   el('contaTroco2').onchange=updateSalePreview;
@@ -572,4 +627,4 @@ function bind(){
   toggleFormType();updateSalePreview();updatePurchasePreview();
 }
 initialize();bind();render();
-if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=58').catch(()=>{});
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=630').catch(()=>{});

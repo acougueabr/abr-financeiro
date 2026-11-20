@@ -548,3 +548,38 @@ body.abr-v5 .abr-account-detail{margin-top:9px}
 body.abr-v5 #movimentacao .abr-back-register{margin-left:auto;width:auto;min-height:30px;padding:5px 9px;border:1px solid #435c55;border-radius:8px;background:#1b3029;color:#74dfad;font-size:12px;white-space:nowrap;line-height:1.2}
 body.abr-v5 #movimentacao .abr-back-register:hover{background:#264b3b}
 @media(min-width:900px){body.abr-v5.abr-on-register header.top{display:flex!important}}
+
+/* V6.3 — cadastro compacto: três ações lado a lado, pagamentos e trocos por botões. */
+body.abr-v5 #movimentacao .abr-quick-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:5px 0 6px}
+body.abr-v5 #movimentacao .abr-quick-action{display:flex;align-items:center;justify-content:center;min-width:0;min-height:36px;padding:6px 5px;background:#252d36;border:1px solid #485765;border-radius:8px;color:#cbd9de;font-size:11px;font-weight:700;white-space:normal;line-height:1.2;text-align:center}
+body.abr-v5 #movimentacao .abr-quick-action.active{background:#1c4234;border-color:#57ce9b;color:#c6ffe5}
+body.abr-v5 #movimentacao .abr-item-rapido:first-child .abr-item-opcional>summary{display:none}
+body.abr-v5 #movimentacao .abr-item-rapido:first-child .abr-item-opcional:not([open]){display:none}
+body.abr-v5 #movimentacao .abr-item-rapido:first-child .abr-item-opcional[open]{display:block;width:100%}
+body.abr-v5 #movimentacao .abr-item-rapido:first-child .abr-item-opcional[open] input{margin:3px 0 2px}
+body.abr-v5 #movimentacao .abr-item-rapido:first-child .abr-item-foot{margin:0}
+body.abr-v5 #movimentacao .abr-sale-extra>summary{display:none}
+body.abr-v5 #movimentacao .abr-sale-extra:not([open]){display:none}
+body.abr-v5 #movimentacao .abr-sale-extra[open]{padding:4px 0 7px}
+body.abr-v5 #movimentacao .abr-sale-extra .formgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+body.abr-v5 #movimentacao .abr-sale-extra .formgrid>div{min-width:0}
+body.abr-v5 #movimentacao .abr-pay-secondary{display:flex;flex-direction:column;gap:4px}
+body.abr-v5 #movimentacao .abr-pay-secondary>div{width:100%}
+body.abr-v5 #movimentacao .abr-method-select{display:none!important}
+body.abr-v5 #movimentacao .abr-fast-methods-second{margin:2px 0 3px}
+body.abr-v5 #movimentacao .abr-troco-row{grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+body.abr-v5 #movimentacao .abr-troco-row>div:first-child{min-width:0}
+body.abr-v5 #movimentacao .abr-troco-row .abr-fast-methods{grid-template-columns:repeat(3,minmax(0,1fr));margin:3px 0}
+body.abr-v5 #movimentacao .abr-change-amount{min-width:100px}
+body.abr-v5 #movimentacao .abr-troco-duas-colunas{grid-template-columns:minmax(0,.65fr) minmax(0,1fr);gap:9px}
+body.abr-v5 #movimentacao .abr-troco-duas-colunas>div{min-width:0}
+body.abr-v5 #movimentacao .abr-troco-duas-colunas .abr-fast-methods{grid-template-columns:repeat(3,minmax(0,1fr));margin:3px 0}
+@media(max-width:650px){
+ body.abr-v5 #movimentacao .abr-quick-actions{gap:4px}
+ body.abr-v5 #movimentacao .abr-quick-action{font-size:10px;padding:5px 2px;min-height:38px}
+ body.abr-v5 #movimentacao .abr-troco-row{gap:6px}
+ body.abr-v5 #movimentacao .abr-troco-row .abr-fast-methods button{font-size:10px;min-height:36px;padding:7px 2px}
+ body.abr-v5 #movimentacao .abr-change-amount{min-width:83px}
+ body.abr-v5 #movimentacao .abr-troco-duas-colunas{grid-template-columns:1fr}
+}
+@media(max-width:360px){body.abr-v5 #movimentacao .abr-quick-action{font-size:9px}}
