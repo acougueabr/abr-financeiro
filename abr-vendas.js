@@ -1,9 +1,9 @@
-/* ABR Financeiro v6.5.4 — filtros de vendas por período + aberturas fixas, sem alterar os valores. */
+/* ABR Financeiro v6.6.5 — filtros clicáveis por pagamento, sem alterar lançamentos. */
 'use strict';
 (()=>{
   const $=id=>document.getElementById(id);
   const START='2026-11-14';
-  let mode='hoje',chosen=today();
+  let mode='hoje',chosen=today(),channel=null;
   // Preferências VISUAIS, isoladas dos dados financeiros. Não recriar dias abertos
   // automaticamente quando o app sincronizar ou recalcular o painel.
   const UI_KEY='abr-ui-vendas-aberturas-v1';
@@ -50,6 +50,77 @@
     }
     return {totals,hasLegacy,unmapped};
   }
+  // Valor efetivamente apresentado em cada cartão de recebimento. Uma venda
+  // mista pode aparecer em dois filtros, mas só a sua parcela correspondente
+  // é exibida. Não transforma empréstimos, fiados ou pagamentos em vendas.
+  const CHANNELS=['Pix','Espécie','Maquininha'];
+  function paymentParts(r,old=false){
+    const values={'Pix':0,'Espécie':0,'Maquininha':0};
+    if(old){
+      values['Espécie']=round2(Number(r.notas||0)-Number(r.trocoDinheiro||0));
+      values['Pix']=round2(Number(r.pix||0)-Number(r.trocoPix||0));
+      values['Maquininha']=round2(Number(r.debito||0)+Number(r.credito||0)+Number(r.cartaoAnterior||0));
+    }else if(Array.isArray(r.recebimentos)){
+      for(const p of r.recebimentos){
+        const key=cashNames[p.conta];
+        if(key)values[key]=round2(values[key]+Number(p.valor||0)-Number(p.taxa||0));
+      }
+      for(const part of trocoPartes(r.troco)){
+        const key=cashNames[part.conta];
+        if(key)values[key]=round2(values[key]-Number(part.valor||0));
+      }
+    }
+    return values;
+  }
+  const channelAmount=(r,c,old=false)=>paymentParts(r,old)[c]||0;
+  function grossChannel(r,c,old=false){
+    if(old){
+      if(c==='Pix')return Number(r.pix||0);
+      if(c==='Espécie')return Number(r.notas||0);
+      return Number(r.debito||0)+Number(r.credito||0)+Number(r.cartaoAnterior||0);
+    }
+    return Array.isArray(r.recebimentos)?sum(r.recebimentos.filter(p=>cashNames[p.conta]===c).map(p=>p.valor)):0;
+  }
+  // Troco pago via Pix não transforma uma venda em dinheiro em venda Pix.
+  // O troco continua abatido no total do cartão, mas não cria uma venda fictícia.
+  const matchesChannel=(r,c,old=false)=>!c||grossChannel(r,c,old)>0.005;
+  function paymentMetrics(sales,oldDays){
+    const metrics=Object.fromEntries(CHANNELS.map(c=>[c,{in:0,change:0,fees:0}]));
+    const add=(c,key,value)=>{if(c)metrics[c][key]=round2(metrics[c][key]+Number(value||0))};
+    for(const r of sales.filter(r=>!r.legacy)){
+      for(const p of Array.isArray(r.recebimentos)?r.recebimentos:[]){
+        const c=cashNames[p.conta];if(!c)continue;
+        add(c,'in',p.valor);add(c,'fees',p.taxa);
+      }
+      for(const part of trocoPartes(r.troco))add(cashNames[part.conta],'change',part.valor);
+    }
+    for(const d of oldDays)for(const r of imported(d)){
+      add('Pix','in',r.pix);add('Pix','change',r.trocoPix);
+      add('Espécie','in',r.notas);add('Espécie','change',r.trocoDinheiro);
+      add('Maquininha','in',Number(r.debito||0)+Number(r.credito||0)+Number(r.cartaoAnterior||0));
+    }
+    return metrics;
+  }
+  function channelRows(d,c){
+    const current=detailSales(d).filter(r=>matchesChannel(r,c));
+    const previous=privateSales(d).filter(r=>matchesChannel(r,c,true));
+    const adjustments=privateAdjustments(d).filter(r=>matchesChannel(r,c,true));
+    return {current,previous,adjustments};
+  }
+  function channelDayTotal(d,c){
+    const rows=channelRows(d,c);
+    return round2(sum(rows.current.map(r=>channelAmount(r,c)))+
+      sum(rows.previous.map(r=>channelAmount(r,c,true)))+
+      sum(rows.adjustments.map(r=>channelAmount(r,c,true))));
+  }
+  function channelDayCount(d,c){
+    const rows=channelRows(d,c);
+    const n=rows.current.length+rows.previous.length;
+    const adj=rows.adjustments.length;
+    return `${n} venda${n===1?'':'s'}${adj?' · '+adj+' ajuste'+(adj===1?'':'s'):''}`;
+  }
+  const channelTag=c=>c?`<small class="abr-sales-portion-tag">${esc(c)} líquido</small>`:'';
+  const channelContext=(r,c,old=false)=>c?`<div class="abr-sales-method-context">${esc(c)} nesta venda: <b>${money(channelAmount(r,c,old))}</b> · Venda total: <b>${money(r.valor)}</b>${old?'<br>Valores do histórico, sujeitos à conciliação.':''}</div>`:'';
   const isAdjustment=r=>r&&r.ajusteConciliacao===true;
   const privateSales=d=>imported(d).filter(r=>!isAdjustment(r));
   const privateAdjustments=d=>imported(d).filter(isAdjustment);
@@ -73,7 +144,7 @@
     }
     return {totals,fiado};
   }
-  function privateSaleDetail(r,index){
+  function privateSaleDetail(r,index,c=null){
     // A mesma estrutura visual das vendas novas. Não atribuímos taxa, tipo ou canal
     // de cartão que não estejam comprovados no histórico original.
     const line=(label,val,cls='')=>`<div class="abr-sales-detail-line ${cls}"><span>${label}</span><b>${money(val)}</b></div>`;
@@ -92,12 +163,12 @@
     const generic=/^(?:Planilha antiga \+ (?:Mercado Pago|PicPay)|Caderno(?: 15\/11| 17\/11)?(?: \+ (?:Mercado Pago|PicPay|confirmação no chat))?|Chat(?: de 14\/11| \+ Mercado Pago| de 14\/11 \+ PicPay)|Correção no chat \+ Mercado Pago)$/i;
     const observation=note&&!generic.test(note)?`<details class="abr-sale-observation"><summary>Observação da planilha</summary><div>${esc(note)}</div></details>`:'';
     const title=r.produto==='Não detalhado'?'Venda':r.produto||'Mercadoria';
-    return `<details class="abr-sale-record abr-sale-private" data-abr-record="private:${esc(r.numero||String(index+1))}"><summary><span class="abr-sale-no">${index+1}</span><span class="abr-sale-name">${esc(title)}</span><strong>${money(r.valor)}</strong><span class="abr-sale-chevron">⌄</span></summary><div class="abr-sale-record-body">${received||'<div class="abr-sales-meta">Sem pagamento registrado</div>'}${change}${due}${client}${observation}</div></details>`;
+    return `<details class="abr-sale-record abr-sale-private" data-abr-record="private:${esc(r.numero||String(index+1))}"><summary><span class="abr-sale-no">${index+1}</span><span class="abr-sale-name">${esc(title)}</span><strong class="abr-sales-portion">${money(c?channelAmount(r,c,true):r.valor)}${channelTag(c)}</strong><span class="abr-sale-chevron">⌄</span></summary><div class="abr-sale-record-body">${channelContext(r,c,true)}${received||'<div class="abr-sales-meta">Sem pagamento registrado</div>'}${change}${due}${client}${observation}</div></details>`;
   }
-  function adjustmentDetail(r){
-    return `<details class="abr-sales-adjustment" data-abr-record="adjustment:${esc(r.numero||String(r.valor))}"><summary><span>Ajuste de conciliação • sem venda comprovada</span><strong>${money(r.valor)}</strong><span>⌄</span></summary><div>Este valor consta no fechamento da planilha, mas não possui comprovante individual de venda. Foi mantido para não alterar o total consolidado.${r.observacoes?`<p>${esc(r.observacoes)}</p>`:''}</div></details>`;
+  function adjustmentDetail(r,c=null){
+    return `<details class="abr-sales-adjustment" data-abr-record="adjustment:${esc(r.numero||String(r.valor))}"><summary><span>Ajuste de conciliação • sem venda comprovada</span><strong>${money(c?channelAmount(r,c,true):r.valor)}</strong><span>⌄</span></summary><div>Este valor consta no fechamento da planilha, mas não possui comprovante individual de venda. Foi mantido para não alterar o total consolidado.${r.observacoes?`<p>${esc(r.observacoes)}</p>`:''}</div></details>`;
   }
-  function salesDetail(r,index){
+  function salesDetail(r,index,c=null){
     const parts=Array.isArray(r.recebimentos)?r.recebimentos:[];
     const received=parts.map(p=>`<div class="abr-sales-detail-line"><span>${esc(labelAccount(p.conta))}${p.conta==='Maquininha'?` • ${esc(p.canal||'Cartão')} / ${esc(p.metodo||'')}`:''}</span><b>${money(p.valor)}</b></div>${Number(p.taxa)>0?`<div class="abr-sales-detail-line abr-sales-fee"><span>Taxa</span><b>−${money(p.taxa)}</b></div>`:''}`).join('');
     const change=trocoPartes(r.troco).map(p=>`<div class="abr-sales-detail-line abr-sales-change"><span>Troco • ${esc(labelAccount(p.conta))}</span><b>−${money(p.valor)}</b></div>`).join('');
@@ -107,18 +178,18 @@
     const client=r.pessoa?`<div class="abr-sales-meta">Cliente: ${esc(r.pessoa)}</div>`:'';
     const note=r.observacao?`<div class="abr-sales-meta">${esc(r.observacao)}</div>`:'';
     const due=restante(r)>0.005?`<div class="abr-sales-detail-line abr-sales-due"><span>Fiado a receber</span><b>${money(restante(r))}</b></div>`:'';
-    return `<details class="abr-sale-record" data-abr-record="sale:${esc(r.id)}"><summary><span class="abr-sale-no">${index+1}</span><span class="abr-sale-name">${esc(title)}</span><strong>${money(r.valor)}</strong><span class="abr-sale-chevron">⌄</span></summary><div class="abr-sale-record-body">${itemRows}${received||'<div class="abr-sales-meta">Sem pagamento registrado</div>'}${change}${due}${client}${note}<div class="abr-sales-cancel-row"><button type="button" data-abr-cancel-sale="${esc(r.id)}">Cancelar venda</button></div></div></details>`;
+    return `<details class="abr-sale-record" data-abr-record="sale:${esc(r.id)}"><summary><span class="abr-sale-no">${index+1}</span><span class="abr-sale-name">${esc(title)}</span><strong class="abr-sales-portion">${money(c?channelAmount(r,c):r.valor)}${channelTag(c)}</strong><span class="abr-sale-chevron">⌄</span></summary><div class="abr-sale-record-body">${channelContext(r,c)}${itemRows}${received||'<div class="abr-sales-meta">Sem pagamento registrado</div>'}${change}${due}${client}${note}<div class="abr-sales-cancel-row"><button type="button" data-abr-cancel-sale="${esc(r.id)}">Cancelar venda</button></div></div></details>`;
   }
-  function dayDetails(d){
+  function dayDetails(d,c=null){
     const rows=detailSales(d),consolidated=dailySales(d).filter(r=>r.legacy),privateRows=imported(d);
     const privSales=privateSales(d),adjustments=privateAdjustments(d);
-    let markup=rows.map(salesDetail).join('')+privSales.map((r,i)=>privateSaleDetail(r,rows.length+i)).join('')+adjustments.map(adjustmentDetail).join('');
-    if(consolidated.length){
+    let markup=c?channelRows(d,c).current.map((r,i)=>salesDetail(r,i,c)).join('')+channelRows(d,c).previous.map((r,i)=>privateSaleDetail(r,channelRows(d,c).current.length+i,c)).join('')+channelRows(d,c).adjustments.map(r=>adjustmentDetail(r,c)).join(''):rows.map(salesDetail).join('')+privSales.map((r,i)=>privateSaleDetail(r,rows.length+i)).join('')+adjustments.map(adjustmentDetail).join('');
+    if(!c&&consolidated.length){
       const base=sum(consolidated.map(n)),history=sum(privateRows.map(n));
       if(!privateRows.length)markup+=`<div class="abr-sales-legacy">Vendas consolidadas: ${money(base)} • sem registros individuais</div>`;
       else if(Math.abs(base-history)>.009)markup+=`<div class="abr-sales-legacy">Diferença de ${money(Math.abs(base-history))}: vendas detalhadas somam ${money(round2(history+sum(rows.map(n))))} e o fechamento registra ${money(round2(base+sum(rows.map(n))))}. Fechamento preservado.</div>`;
     }
-    return markup||'<div class="abr-sales-day-empty">Nenhuma venda registrada neste dia.</div>';
+    return markup||`<div class="abr-sales-day-empty">Nenhuma venda em ${esc(c||'este dia')} registrada neste dia.</div>`;
   }
   function allDays(){
     const end=[today(),...realSales().map(r=>r.data),chosen].sort().at(-1);
@@ -146,26 +217,66 @@
     }
     $('abr-sales-overview').innerHTML=`<div class="abr-sales-total"><small>${mode==='todos'?'TOTAL VENDIDO DESDE 14/11':'TOTAL VENDIDO'}</small><strong>${money(total)}</strong></div><div class="abr-sales-count"><span>${mode==='todos'?'Histórico completo':niceDate(date)}</span><b>${esc(count)}</b></div>`;
     const icons={'Pix':'◉','Espécie':'▤','Maquininha':'▣'};
-    $('abr-sales-channels').innerHTML=['Pix','Espécie','Maquininha'].map(c=>`<div class="abr-sales-channel"><span class="abr-sales-channel-label"><span aria-hidden="true">${icons[c]}</span> ${c}</span><strong>${moneySigned(totals[c])}</strong>${c==='Maquininha'&&cartaoAntigo?'<small class="abr-sales-card-note">Histórico sem taxas identificadas</small>':''}</div>`).join('');
+    $('abr-sales-channels').innerHTML=CHANNELS.map(c=>`<button type="button" class="abr-sales-channel${channel===c?' active':''}" data-abr-channel="${c}" aria-pressed="${channel===c?'true':'false'}" aria-label="${channel===c?'Mostrar todas as vendas':'Filtrar vendas em '+c}"><span class="abr-sales-channel-label"><span aria-hidden="true">${icons[c]}</span> ${c}</span><strong>${moneySigned(totals[c])}</strong>${c==='Maquininha'&&cartaoAntigo?'<small class="abr-sales-card-note">Histórico sem taxas identificadas</small>':''}<small class="abr-sales-channel-action">${channel===c?'✓ Filtrando · toque para limpar':'Ver vendas ›'}</small></button>`).join('');
     const clarity=$('abr-sales-clarity');
     const notes=[];
     if(semHistorico)notes.push('Vendas antigas sem formas de pagamento detalhadas');
     if(fiadoHistorico>0)notes.push(`Fiado histórico: ${money(fiadoHistorico)} (não recebido na data)`);
     if(unmapped)notes.push('Algumas formas de recebimento não classificadas');
     if(ajustes)notes.push(`${ajustes} ajuste${ajustes===1?'':'s'} de conciliação sem venda comprovada`);
-    clarity.textContent=notes.join(' · ');clarity.hidden=!notes.length;
+    const received=sum(Object.values(totals));
+    const diff=round2(total-received);
+    const fees=sum(sales.filter(r=>!r.legacy).flatMap(r=>Array.isArray(r.recebimentos)?r.recebimentos:[]).map(p=>p.taxa));
+    const fiadoNovo=sum(sales.filter(r=>!r.legacy&&Array.isArray(r.recebimentos)).map(r=>{
+      const gross=sum(r.recebimentos.map(p=>p.valor));
+      const change=sum(trocoPartes(r.troco).map(p=>p.valor));
+      return Math.max(0,round2(Number(r.valor||0)-gross+change));
+    }));
+    const explained=round2(fees+fiadoNovo+fiadoHistorico);
+    const other=round2(diff-explained);
+    const reasons=[];
+    if(fees>.005)reasons.push(`Taxas de cartão registradas: ${money(fees)}`);
+    if(fiadoNovo>.005)reasons.push(`Fiado das vendas novas: ${money(fiadoNovo)}`);
+    if(fiadoHistorico>.005)reasons.push(`Fiado do histórico: ${money(fiadoHistorico)}`);
+    if(other>.005)reasons.push(`Outras diferenças ou formas não detalhadas: ${money(other)}`);
+    if(other<-.005)reasons.push(`Diferença de conciliação ainda não identificada: ${money(Math.abs(other))}`);
+    const explanation=Math.abs(diff)>.005?`<details class="abr-sales-difference"><summary>Por que os pagamentos somam ${money(received)}, mas vendemos ${money(total)}?</summary><p>O faturamento é o valor das mercadorias vendidas. Os cartões mostram os recebimentos líquidos identificados, depois de trocos e taxas. ${reasons.length?reasons.map(esc).join(' · ')+'.':'A diferença precisa ser conferida nos lançamentos.'}</p></details>`:'';
+    clarity.innerHTML=explanation+(notes.length?`<div class="abr-sales-notes">${notes.map(esc).join(' · ')}</div>`:'');
+    clarity.hidden=!explanation&&!notes.length;
+    const filterStatus=$('abr-sales-filter-status');
+    const metrics=paymentMetrics(sales,oldDays);
+    if(channel){
+      const visibleDays=mode==='todos'?allDays():[date];
+      const counts=visibleDays.map(d=>channelRows(d,channel));
+      const countSales=counts.reduce((n,r)=>n+r.current.length+r.previous.length,0);
+      const countAdj=counts.reduce((n,r)=>n+r.adjustments.length,0);
+      const m=metrics[channel];
+      const movements=[`Entradas: ${money(m.in)}`];
+      if(m.change>.005)movements.push(`Trocos devolvidos: −${money(m.change)}`);
+      if(m.fees>.005)movements.push(`Taxas: −${money(m.fees)}`);
+      movements.push(`Líquido: ${moneySigned(totals[channel])}`);
+      filterStatus.innerHTML=`<div><b>${esc(channel)} — ${countSales} venda${countSales===1?'':'s'}</b>${countAdj?` · ${countAdj} ajuste sem venda comprovada`:''}<small>${movements.map(esc).join(' · ')}</small><small>As vendas abaixo tiveram pagamento em ${esc(channel)}. Trocos feitos por ${esc(channel)} em vendas de outra modalidade reduzem o líquido acima, mas não são novas vendas em ${esc(channel)}.</small></div><button type="button" id="abr-sales-clear-channel">Mostrar todas</button>`;
+      filterStatus.hidden=false;
+    }else{filterStatus.hidden=true;filterStatus.innerHTML=''}
     $('abr-sales-date-picker').hidden=mode!=='dia';
     $('abr-sales-date').value=date;
     document.querySelectorAll('[data-abr-sales-period]').forEach(b=>{const active=b.dataset.abrSalesPeriod===mode;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active))});
     // Mostrar somente os dias do filtro ativo. O histórico inteiro pertence
     // exclusivamente à aba 'Todo o período'. Nenhum lançamento é apagado.
     const visibleDays=mode==='todos'?allDays():[date];
-    $('abr-sales-list').innerHTML=visibleDays.map(d=>{
-      const isOff=d==='2026-11-16'&&!dailySales(d).length&&!imported(d).length;
-      const open=!isOff&&(hasChoice(`day:${d}`)?salesUI[`day:${d}`]:(mode!=='todos'&&d===date));
-      const dayTotal=sum(dailySales(d).map(n));
-      return `<details class="abr-sales-day${isOff?' abr-sales-day-off':''}" data-abr-day="${d}"${open?' open':''}><summary class="abr-sales-day-summary"><span class="abr-sales-day-date">${shortDate(d)}</span><span class="abr-sales-day-count">${isOff?'Folga':esc(countLabel(d))}</span><span class="abr-sales-day-total">${isOff?'':dailySales(d).length?money(dayTotal):'—'}</span><span class="abr-sales-day-chevron">${isOff?'':'⌄'}</span></summary>${isOff?'':`<div class="abr-sales-day-content">${dayDetails(d)}</div>`}</details>`;
-    }).join('');
+    const filteredDays=channel?visibleDays.filter(d=>{
+      const rows=channelRows(d,channel);
+      return rows.current.length+rows.previous.length+rows.adjustments.length>0;
+    }):visibleDays;
+    $('abr-sales-list').innerHTML=filteredDays.map(d=>{
+      const isOff=!channel&&d==='2026-11-16'&&!dailySales(d).length&&!imported(d).length;
+      // Ao filtrar, abrir o dia escolhido (ou o primeiro dia com resultados),
+      // sem apagar a preferência original de abrir/fechar os dias.
+      const open=!isOff&&(channel?(mode==='todos'?d===filteredDays[0]:true):(hasChoice(`day:${d}`)?salesUI[`day:${d}`]:(mode!=='todos'&&d===date)));
+      const dayTotal=channel?channelDayTotal(d,channel):sum(dailySales(d).map(n));
+      const label=channel?channelDayCount(d,channel):countLabel(d);
+      return `<details class="abr-sales-day${isOff?' abr-sales-day-off':''}" data-abr-day="${d}"${open?' open':''}><summary class="abr-sales-day-summary"><span class="abr-sales-day-date">${shortDate(d)}</span><span class="abr-sales-day-count">${isOff?'Folga':esc(label)}</span><span class="abr-sales-day-total">${isOff?'':channel?money(dayTotal):dailySales(d).length?money(dayTotal):'—'}${channel?`<small class="abr-sales-day-channel-label">${esc(channel)} nas vendas</small>`:''}</span><span class="abr-sales-day-chevron">${isOff?'':'⌄'}</span></summary>${isOff?'':`<div class="abr-sales-day-content">${dayDetails(d,channel)}</div>`}</details>`;
+    }).join('')||(channel?`<div class="abr-sales-no-channel">Nenhuma venda em <b>${esc(channel)}</b> neste período. <button type="button" id="abr-sales-empty-reset">Ver todas</button></div>`:'');
     // Restaurar a abertura de cada venda e observação, sem modificar valores.
     $('abr-sales-list').querySelectorAll('details[data-abr-record]').forEach(record=>{
       const key=uiKey(record);
@@ -192,7 +303,17 @@
   $('abr-sales-date').onchange=()=>{chosen=$('abr-sales-date').value||today();mode='dia';paint()};
   $('abr-sales-today').onclick=()=>{mode='hoje';chosen=today();paint()};
   document.querySelectorAll('[data-abr-sales-period]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.abrSalesPeriod;paint()}));
+  $('abr-sales-channels').addEventListener('click',e=>{
+    const button=e.target.closest('[data-abr-channel]');
+    if(!button)return;
+    channel=channel===button.dataset.abrChannel?null:button.dataset.abrChannel;
+    paint();
+  });
+  $('abr-sales-filter-status').addEventListener('click',e=>{
+    if(e.target.closest('#abr-sales-clear-channel')){channel=null;paint()}
+  });
   $('abr-sales-list').addEventListener('click',e=>{
+    if(e.target.closest('#abr-sales-empty-reset')){channel=null;paint();return}
     const summary=e.target.closest('summary');
     if(summary&&summary.parentElement?.tagName==='DETAILS'){
       const details=summary.parentElement;

@@ -51,17 +51,26 @@ body.abr-v5 .abr-sales-cancel-row button{padding:6px 9px;font-size:11px;color:#f
  .abr-sales-history-head span{font-size:9px}
 }
 
-/* v6.5.2 — mesmas linhas de pagamento/troco para vendas históricas */
-body.abr-v5 .abr-history-import{background:transparent;border:0;color:#70d9ad;font-size:11px;padding:5px 1px;font-weight:750;white-space:nowrap}
-body.abr-v5 .abr-history-import:hover{text-decoration:underline}
-.abr-sales-method-muted{color:#9cabb8;font-size:11px;font-weight:500}
-.abr-sales-card-note{color:#b8b4d8;font-size:10px;line-height:1.25;margin-top:-1px}
-.abr-sale-observation{margin-top:8px;color:#aebcc7;font-size:11px}
-.abr-sale-observation>summary{display:list-item!important;min-height:0!important;padding:4px 0!important;cursor:pointer;color:#aebcc7;font-size:11px}
-.abr-sale-observation>div{padding:4px 0 5px;line-height:1.45}
-.abr-sales-adjustment{margin:9px 0;border:1px solid #6e583c;border-radius:8px;background:#2d281f;color:#eed3a8}
-.abr-sales-adjustment>summary{display:flex;align-items:center;gap:9px;list-style:none;padding:10px 9px;cursor:pointer;font-size:11px}
-.abr-sales-adjustment>summary span:first-child{flex:1}
-.abr-sales-adjustment>summary strong{font-size:13px;color:#f3e0bd}
-.abr-sales-adjustment>div{font-size:11px;color:#e6d6b8;line-height:1.5;padding:0 10px 10px}
-.abr-sales-adjustment>div p{margin:6px 0 0}
+/* v6.6.5 — botões Pix / Espécie / Maquininha como filtros de vendas. */
+.abr-sales-channels button.abr-sales-channel{font-family:inherit;color:inherit;cursor:pointer;text-align:left;transition:border-color .16s,background .16s,box-shadow .16s}
+.abr-sales-channels button.abr-sales-channel:hover{border-color:#8d91c2;background:#2b3044}
+.abr-sales-channels button.abr-sales-channel:focus-visible{outline:3px solid #8fe0bd;outline-offset:2px}
+.abr-sales-channels button.abr-sales-channel.active{border-color:#4fdda9;background:#1c3535;box-shadow:inset 0 0 0 1px #4fdda9}
+.abr-sales-channel-action{font-size:10px;color:#b5c4d1;line-height:1.2;margin-top:1px}
+.abr-sales-channel.active .abr-sales-channel-action{color:#79e8bc;font-weight:800}
+.abr-sales-filter-status{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#172b2b;border:1px solid #386e62;border-radius:9px;padding:10px 12px;margin:13px 0 7px;font-size:12px}
+.abr-sales-filter-status[hidden]{display:none!important}
+.abr-sales-filter-status b{color:#77e1b7}
+.abr-sales-filter-status small{display:block;font-size:11px;line-height:1.4;color:#b7c7c9;margin-top:4px}
+body.abr-v5 .abr-sales-filter-status button{background:transparent;border:1px solid #548779;border-radius:7px;color:#83e8be;padding:8px 10px;font-size:11px;white-space:nowrap}
+.abr-sales-portion{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.abr-sales-portion-tag{font-size:9px;color:#80dfb7;font-weight:600;white-space:nowrap}
+.abr-sales-method-context{background:#18342d;border:1px solid #346855;color:#e0f8ed;border-radius:7px;padding:9px;margin:0 0 9px;font-size:11px;line-height:1.6}
+.abr-sales-day-channel-label{display:block;color:#83d9b5;font-size:9px;font-weight:500;text-align:right;margin-top:3px}
+.abr-sales-difference{border:1px solid #3b4c58;background:#161d25;border-radius:8px;padding:9px 10px;margin:9px 0 4px}
+.abr-sales-difference summary{cursor:pointer;color:#b8cbd5;font-weight:700;font-size:11px;line-height:1.5}
+.abr-sales-difference p{color:#c4d2da;margin:8px 0 2px;line-height:1.55;font-size:11px}
+.abr-sales-notes{margin-top:7px;color:#a9b8c3}
+.abr-sales-no-channel{padding:20px 12px;text-align:center;border:1px dashed #3d5260;border-radius:9px;color:#c0d1da;font-size:13px;line-height:1.7;margin-top:10px}
+body.abr-v5 .abr-sales-no-channel button{background:transparent;border:1px solid #548779;color:#80e2b5;padding:5px 8px;font-size:12px;margin-left:6px}
+@media(max-width:650px){.abr-sales-filter-status{align-items:flex-start}.abr-sales-filter-status small{font-size:10px}.abr-sales-channel-action{font-size:9px}.abr-sales-portion-tag{font-size:9px}}
