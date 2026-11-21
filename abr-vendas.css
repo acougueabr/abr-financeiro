@@ -15,11 +15,12 @@ body.abr-v5 .abr-day-overview{padding:4px 0 13px;align-items:flex-end}
 .abr-sales-channel{display:flex;flex-direction:column;align-items:flex-start;gap:6px;background:#24263a;border:1px solid #504d79;border-radius:10px;padding:11px 12px;min-width:0}
 .abr-sales-channel-label{font-size:12px;font-weight:700;color:#c3b9ff;display:flex;align-items:center;gap:6px}
 .abr-sales-channel strong{font-size:clamp(15px,2vw,20px);color:#f1f1f8;overflow-wrap:anywhere;line-height:1.1}
-.abr-sales-clarity{font-size:11px;color:#b9c5ce;margin:6px 1px 12px;line-height:1.35}
-.abr-sales-clarity[hidden]{display:none!important}
 .abr-sales-history-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:20px;padding-bottom:6px}
 .abr-sales-history-head h3{font-size:13px;margin:0;color:#f1f3f4}
 .abr-sales-history-head span{font-size:10px;color:#98a7b4}
+/* Importar histórico é ação eventual, não botão principal da tela. */
+body.abr-v5 .abr-sales-history-head button.abr-history-import{background:transparent;border:0;box-shadow:none;color:#6ee0b5;font-size:11px;font-weight:700;padding:5px 2px;min-height:0;line-height:1.25}
+body.abr-v5 .abr-sales-history-head button.abr-history-import:hover{text-decoration:underline;background:transparent}
 .abr-sales-day{border-bottom:1px solid #34404b}
 .abr-sales-day>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:52px;padding:9px 2px}
 .abr-sales-day>summary::-webkit-details-marker{display:none}
@@ -51,26 +52,17 @@ body.abr-v5 .abr-sales-cancel-row button{padding:6px 9px;font-size:11px;color:#f
  .abr-sales-history-head span{font-size:9px}
 }
 
-/* v6.6.5 — botões Pix / Espécie / Maquininha como filtros de vendas. */
+/* v6.6.6 — filtros simples Pix / Espécie / Maquininha. */
 .abr-sales-channels button.abr-sales-channel{font-family:inherit;color:inherit;cursor:pointer;text-align:left;transition:border-color .16s,background .16s,box-shadow .16s}
 .abr-sales-channels button.abr-sales-channel:hover{border-color:#8d91c2;background:#2b3044}
 .abr-sales-channels button.abr-sales-channel:focus-visible{outline:3px solid #8fe0bd;outline-offset:2px}
 .abr-sales-channels button.abr-sales-channel.active{border-color:#4fdda9;background:#1c3535;box-shadow:inset 0 0 0 1px #4fdda9}
 .abr-sales-channel-action{font-size:10px;color:#b5c4d1;line-height:1.2;margin-top:1px}
 .abr-sales-channel.active .abr-sales-channel-action{color:#79e8bc;font-weight:800}
-.abr-sales-filter-status{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#172b2b;border:1px solid #386e62;border-radius:9px;padding:10px 12px;margin:13px 0 7px;font-size:12px}
-.abr-sales-filter-status[hidden]{display:none!important}
-.abr-sales-filter-status b{color:#77e1b7}
-.abr-sales-filter-status small{display:block;font-size:11px;line-height:1.4;color:#b7c7c9;margin-top:4px}
-body.abr-v5 .abr-sales-filter-status button{background:transparent;border:1px solid #548779;border-radius:7px;color:#83e8be;padding:8px 10px;font-size:11px;white-space:nowrap}
 .abr-sales-portion{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
 .abr-sales-portion-tag{font-size:9px;color:#80dfb7;font-weight:600;white-space:nowrap}
 .abr-sales-method-context{background:#18342d;border:1px solid #346855;color:#e0f8ed;border-radius:7px;padding:9px;margin:0 0 9px;font-size:11px;line-height:1.6}
 .abr-sales-day-channel-label{display:block;color:#83d9b5;font-size:9px;font-weight:500;text-align:right;margin-top:3px}
-.abr-sales-difference{border:1px solid #3b4c58;background:#161d25;border-radius:8px;padding:9px 10px;margin:9px 0 4px}
-.abr-sales-difference summary{cursor:pointer;color:#b8cbd5;font-weight:700;font-size:11px;line-height:1.5}
-.abr-sales-difference p{color:#c4d2da;margin:8px 0 2px;line-height:1.55;font-size:11px}
-.abr-sales-notes{margin-top:7px;color:#a9b8c3}
 .abr-sales-no-channel{padding:20px 12px;text-align:center;border:1px dashed #3d5260;border-radius:9px;color:#c0d1da;font-size:13px;line-height:1.7;margin-top:10px}
 body.abr-v5 .abr-sales-no-channel button{background:transparent;border:1px solid #548779;color:#80e2b5;padding:5px 8px;font-size:12px;margin-left:6px}
-@media(max-width:650px){.abr-sales-filter-status{align-items:flex-start}.abr-sales-filter-status small{font-size:10px}.abr-sales-channel-action{font-size:9px}.abr-sales-portion-tag{font-size:9px}}
+@media(max-width:650px){.abr-sales-channel-action{font-size:9px}.abr-sales-portion-tag{font-size:9px}}

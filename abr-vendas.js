@@ -1,4 +1,4 @@
-/* ABR Financeiro v6.6.5 — filtros clicáveis por pagamento, sem alterar lançamentos. */
+/* ABR Financeiro v6.6.6 — filtros simples e correção da lista de vendas. */
 'use strict';
 (()=>{
   const $=id=>document.getElementById(id);
@@ -183,7 +183,10 @@
   function dayDetails(d,c=null){
     const rows=detailSales(d),consolidated=dailySales(d).filter(r=>r.legacy),privateRows=imported(d);
     const privSales=privateSales(d),adjustments=privateAdjustments(d);
-    let markup=c?channelRows(d,c).current.map((r,i)=>salesDetail(r,i,c)).join('')+channelRows(d,c).previous.map((r,i)=>privateSaleDetail(r,channelRows(d,c).current.length+i,c)).join('')+channelRows(d,c).adjustments.map(r=>adjustmentDetail(r,c)).join(''):rows.map(salesDetail).join('')+privSales.map((r,i)=>privateSaleDetail(r,rows.length+i)).join('')+adjustments.map(adjustmentDetail).join('');
+    // Nunca passar a função de renderização diretamente ao Array.map:
+    // map fornece (registro, índice, ARRAY) e o 3º argumento seria
+    // confundido com o canal de pagamento, quebrando título e valor.
+    let markup=c?channelRows(d,c).current.map((r,i)=>salesDetail(r,i,c)).join('')+channelRows(d,c).previous.map((r,i)=>privateSaleDetail(r,channelRows(d,c).current.length+i,c)).join('')+channelRows(d,c).adjustments.map(r=>adjustmentDetail(r,c)).join(''):rows.map((r,i)=>salesDetail(r,i,null)).join('')+privSales.map((r,i)=>privateSaleDetail(r,rows.length+i,null)).join('')+adjustments.map(r=>adjustmentDetail(r,null)).join('');
     if(!c&&consolidated.length){
       const base=sum(consolidated.map(n)),history=sum(privateRows.map(n));
       if(!privateRows.length)markup+=`<div class="abr-sales-legacy">Vendas consolidadas: ${money(base)} • sem registros individuais</div>`;
@@ -217,47 +220,9 @@
     }
     $('abr-sales-overview').innerHTML=`<div class="abr-sales-total"><small>${mode==='todos'?'TOTAL VENDIDO DESDE 14/11':'TOTAL VENDIDO'}</small><strong>${money(total)}</strong></div><div class="abr-sales-count"><span>${mode==='todos'?'Histórico completo':niceDate(date)}</span><b>${esc(count)}</b></div>`;
     const icons={'Pix':'◉','Espécie':'▤','Maquininha':'▣'};
-    $('abr-sales-channels').innerHTML=CHANNELS.map(c=>`<button type="button" class="abr-sales-channel${channel===c?' active':''}" data-abr-channel="${c}" aria-pressed="${channel===c?'true':'false'}" aria-label="${channel===c?'Mostrar todas as vendas':'Filtrar vendas em '+c}"><span class="abr-sales-channel-label"><span aria-hidden="true">${icons[c]}</span> ${c}</span><strong>${moneySigned(totals[c])}</strong>${c==='Maquininha'&&cartaoAntigo?'<small class="abr-sales-card-note">Histórico sem taxas identificadas</small>':''}<small class="abr-sales-channel-action">${channel===c?'✓ Filtrando · toque para limpar':'Ver vendas ›'}</small></button>`).join('');
-    const clarity=$('abr-sales-clarity');
-    const notes=[];
-    if(semHistorico)notes.push('Vendas antigas sem formas de pagamento detalhadas');
-    if(fiadoHistorico>0)notes.push(`Fiado histórico: ${money(fiadoHistorico)} (não recebido na data)`);
-    if(unmapped)notes.push('Algumas formas de recebimento não classificadas');
-    if(ajustes)notes.push(`${ajustes} ajuste${ajustes===1?'':'s'} de conciliação sem venda comprovada`);
-    const received=sum(Object.values(totals));
-    const diff=round2(total-received);
-    const fees=sum(sales.filter(r=>!r.legacy).flatMap(r=>Array.isArray(r.recebimentos)?r.recebimentos:[]).map(p=>p.taxa));
-    const fiadoNovo=sum(sales.filter(r=>!r.legacy&&Array.isArray(r.recebimentos)).map(r=>{
-      const gross=sum(r.recebimentos.map(p=>p.valor));
-      const change=sum(trocoPartes(r.troco).map(p=>p.valor));
-      return Math.max(0,round2(Number(r.valor||0)-gross+change));
-    }));
-    const explained=round2(fees+fiadoNovo+fiadoHistorico);
-    const other=round2(diff-explained);
-    const reasons=[];
-    if(fees>.005)reasons.push(`Taxas de cartão registradas: ${money(fees)}`);
-    if(fiadoNovo>.005)reasons.push(`Fiado das vendas novas: ${money(fiadoNovo)}`);
-    if(fiadoHistorico>.005)reasons.push(`Fiado do histórico: ${money(fiadoHistorico)}`);
-    if(other>.005)reasons.push(`Outras diferenças ou formas não detalhadas: ${money(other)}`);
-    if(other<-.005)reasons.push(`Diferença de conciliação ainda não identificada: ${money(Math.abs(other))}`);
-    const explanation=Math.abs(diff)>.005?`<details class="abr-sales-difference"><summary>Por que os pagamentos somam ${money(received)}, mas vendemos ${money(total)}?</summary><p>O faturamento é o valor das mercadorias vendidas. Os cartões mostram os recebimentos líquidos identificados, depois de trocos e taxas. ${reasons.length?reasons.map(esc).join(' · ')+'.':'A diferença precisa ser conferida nos lançamentos.'}</p></details>`:'';
-    clarity.innerHTML=explanation+(notes.length?`<div class="abr-sales-notes">${notes.map(esc).join(' · ')}</div>`:'');
-    clarity.hidden=!explanation&&!notes.length;
-    const filterStatus=$('abr-sales-filter-status');
-    const metrics=paymentMetrics(sales,oldDays);
-    if(channel){
-      const visibleDays=mode==='todos'?allDays():[date];
-      const counts=visibleDays.map(d=>channelRows(d,channel));
-      const countSales=counts.reduce((n,r)=>n+r.current.length+r.previous.length,0);
-      const countAdj=counts.reduce((n,r)=>n+r.adjustments.length,0);
-      const m=metrics[channel];
-      const movements=[`Entradas: ${money(m.in)}`];
-      if(m.change>.005)movements.push(`Trocos devolvidos: −${money(m.change)}`);
-      if(m.fees>.005)movements.push(`Taxas: −${money(m.fees)}`);
-      movements.push(`Líquido: ${moneySigned(totals[channel])}`);
-      filterStatus.innerHTML=`<div><b>${esc(channel)} — ${countSales} venda${countSales===1?'':'s'}</b>${countAdj?` · ${countAdj} ajuste sem venda comprovada`:''}<small>${movements.map(esc).join(' · ')}</small><small>As vendas abaixo tiveram pagamento em ${esc(channel)}. Trocos feitos por ${esc(channel)} em vendas de outra modalidade reduzem o líquido acima, mas não são novas vendas em ${esc(channel)}.</small></div><button type="button" id="abr-sales-clear-channel">Mostrar todas</button>`;
-      filterStatus.hidden=false;
-    }else{filterStatus.hidden=true;filterStatus.innerHTML=''}
+    $('abr-sales-channels').innerHTML=CHANNELS.map(c=>`<button type="button" class="abr-sales-channel${channel===c?' active':''}" data-abr-channel="${c}" aria-pressed="${channel===c?'true':'false'}" aria-label="${channel===c?'Mostrar todas as vendas':'Filtrar vendas em '+c}"><span class="abr-sales-channel-label"><span aria-hidden="true">${icons[c]}</span> ${c}</span><strong>${moneySigned(totals[c])}</strong><small class="abr-sales-channel-action">${channel===c?'✓ Filtrando · toque para limpar':'Ver vendas ›'}</small></button>`).join('');
+    // Somente os cartões filtram o histórico; nenhuma caixa de explicação
+    // financeira aparece entre os cartões e as vendas.
     $('abr-sales-date-picker').hidden=mode!=='dia';
     $('abr-sales-date').value=date;
     document.querySelectorAll('[data-abr-sales-period]').forEach(b=>{const active=b.dataset.abrSalesPeriod===mode;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active))});
@@ -308,9 +273,6 @@
     if(!button)return;
     channel=channel===button.dataset.abrChannel?null:button.dataset.abrChannel;
     paint();
-  });
-  $('abr-sales-filter-status').addEventListener('click',e=>{
-    if(e.target.closest('#abr-sales-clear-channel')){channel=null;paint()}
   });
   $('abr-sales-list').addEventListener('click',e=>{
     if(e.target.closest('#abr-sales-empty-reset')){channel=null;paint();return}
