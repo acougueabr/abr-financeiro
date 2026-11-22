@@ -483,14 +483,24 @@ function updateSalePreview(autofill=false){
   const troco=Math.max(0,round2(bruto-total));const falta=Math.max(0,round2(total-bruto));
   el('trocoPrevisto').textContent=money(total?troco:0);
   const split=showTrocoSplit(troco);
+  // A previsão informa apenas o troco entregue agora; a reserva não sai fisicamente do caixa.
+  const pendenteInformado=el('abr-pending-toggle')?.checked?Math.max(0,round2(num('abr-pending-new'))):0;
+  const pendenteValido=pendenteInformado<=troco+.005;
+  const entregarAgora=Math.max(0,round2(troco-Math.min(troco,pendenteInformado)));
   const notice=el('situacaoVenda');
   let text='';
   if(total>0&&el('fiadoVenda').checked)text=`Fiado: ${money(total)}. Informe o cliente.`;
   else if(total>0&&falta>0)text=`Falta receber ${money(falta)} — informe o cliente.`;
   else if(total>0&&troco>0){
-    if(el('dividirTroco').checked){
-      text=split?.valid?`Devolver ${money(split.partes[0].valor)} em ${esc(el('contaTroco').selectedOptions[0].textContent)} + ${money(split.partes[1].valor)} em ${esc(el('contaTroco2').selectedOptions[0].textContent)}.`:(split?.reason||'Confira a divisão do troco.');
-    }else text=`Devolver ${money(troco)} em ${esc(el('contaTroco').selectedOptions[0].textContent)}.`;
+    if(!pendenteValido)text='O troco pendente não pode ser maior que o troco calculado.';
+    else if(el('dividirTroco').checked){
+      if(!split?.valid)text=split?.reason||'Confira a divisão do troco.';
+      else if(pendenteInformado>.005){
+        const restante=[...split.partes];let reservar=pendenteInformado;
+        for(const parte of restante){const desconto=Math.min(reservar,parte.valor);parte.valor=round2(parte.valor-desconto);reservar=round2(reservar-desconto)}
+        text=restante.filter(p=>p.valor>.005).map(p=>`Devolver ${money(p.valor)} em ${esc(p.conta==='Espécie cédulas'?'Cédulas':p.conta==='Espécie moedas'?'Moedas':p.conta)}`).join(' + ')+(restante.some(p=>p.valor>.005)?'. ':'')+`Pendente: ${money(pendenteInformado)}.`;
+      }else text=`Devolver ${money(split.partes[0].valor)} em ${esc(el('contaTroco').selectedOptions[0].textContent)} + ${money(split.partes[1].valor)} em ${esc(el('contaTroco2').selectedOptions[0].textContent)}.`;
+    }else text=`${entregarAgora>.005?`Devolver ${money(entregarAgora)} em ${esc(el('contaTroco').selectedOptions[0].textContent)}.`:'Nenhum troco a entregar agora.'}${pendenteInformado>.005?' Pendente: '+money(pendenteInformado)+'.':''}`;
   }
   notice.innerHTML=text;notice.classList.toggle('hidden',!text);
 }

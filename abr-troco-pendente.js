@@ -20,6 +20,7 @@
     const due=toggle.checked?(Number(amount.value)||0):0;
     preview.textContent=money(Math.max(0,Math.round((total-due)*100)/100));
     amount.max=String(total);
+    if(typeof updateSalePreview==='function')updateSalePreview(false);
   }
   toggle.addEventListener('change',refreshPending);
   amount.addEventListener('input',refreshPending);
