@@ -42,6 +42,7 @@
         if(account)totals[account]=round2(totals[account]+Number(p.valor||0)-Number(p.taxa||0));
         else if(Number(p.valor||0))unmapped=true;
       }
+      if(Number(r.trocoPendente)>0){const account=cashNames[r.trocoPendenteConta]||'Espécie';totals[account]=round2(totals[account]-Number(r.trocoPendente))}
       for(const part of trocoPartes(r.troco)){
         const account=cashNames[part.conta];
         if(account)totals[account]=round2(totals[account]-Number(part.valor||0));
@@ -65,6 +66,7 @@
         const key=cashNames[p.conta];
         if(key)values[key]=round2(values[key]+Number(p.valor||0)-Number(p.taxa||0));
       }
+      if(Number(r.trocoPendente)>0){const key=cashNames[r.trocoPendenteConta]||'Espécie';values[key]=round2(values[key]-Number(r.trocoPendente))}
       for(const part of trocoPartes(r.troco)){
         const key=cashNames[part.conta];
         if(key)values[key]=round2(values[key]-Number(part.valor||0));
@@ -93,6 +95,7 @@
         add(c,'in',p.valor);add(c,'fees',p.taxa);
       }
       for(const part of trocoPartes(r.troco))add(cashNames[part.conta],'change',part.valor);
+      if(Number(r.trocoPendente)>0)add(cashNames[r.trocoPendenteConta]||'Espécie','change',r.trocoPendente);
     }
     for(const d of oldDays)for(const r of imported(d)){
       add('Pix','in',r.pix);add('Pix','change',r.trocoPix);
@@ -178,7 +181,7 @@
     const client=r.pessoa?`<div class="abr-sales-meta">Cliente: ${esc(r.pessoa)}</div>`:'';
     const note=r.observacao?`<div class="abr-sales-meta">${esc(r.observacao)}</div>`:'';
     const due=restante(r)>0.005?`<div class="abr-sales-detail-line abr-sales-due"><span>Fiado a receber</span><b>${money(restante(r))}</b></div>`:'';
-    return `<details class="abr-sale-record" data-abr-record="sale:${esc(r.id)}"><summary><span class="abr-sale-no">${index+1}</span><span class="abr-sale-name">${esc(title)}</span><strong class="abr-sales-portion">${money(c?channelAmount(r,c):r.valor)}${channelTag(c)}</strong><span class="abr-sale-chevron">⌄</span></summary><div class="abr-sale-record-body">${channelContext(r,c)}${itemRows}${received||'<div class="abr-sales-meta">Sem pagamento registrado</div>'}${change}${due}${client}${note}<div class="abr-sales-cancel-row"><button type="button" data-abr-cancel-sale="${esc(r.id)}">Cancelar venda</button></div></div></details>`;
+    return `<details class="abr-sale-record" data-abr-record="sale:${esc(r.id)}"><summary><span class="abr-sale-no">${index+1}</span><span class="abr-sale-name">${esc(title)}</span><strong class="abr-sales-portion">${money(c?channelAmount(r,c):r.valor)}${channelTag(c)}</strong><span class="abr-sale-chevron">⌄</span></summary><div class="abr-sale-record-body">${channelContext(r,c)}${itemRows}${received||'<div class="abr-sales-meta">Sem pagamento registrado</div>'}${change}${due}${client}${note}${Number(r.trocoPendente||0)>0?`<div class="abr-sales-detail-line abr-sales-due"><span>Troco pendente ao cliente</span><b>${money(trocoPendenteAberto(r))}</b></div>`:""}<div class="abr-sales-pending-actions"><button type="button" data-abr-pending-edit="${esc(r.id)}">${Number(r.trocoPendente||0)>0?"Corrigir troco pendente":"Devo troco ao cliente"}</button>${trocoPendenteAberto(r)>.005?`<button type="button" data-abr-pending-pay="${esc(r.id)}">Entregar troco</button>`:""}</div><div class="abr-sales-cancel-row"><button type="button" data-abr-cancel-sale="${esc(r.id)}">Cancelar venda</button></div></div></details>`;
   }
   function dayDetails(d,c=null){
     const rows=detailSales(d),consolidated=dailySales(d).filter(r=>r.legacy),privateRows=imported(d);

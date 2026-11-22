@@ -103,7 +103,7 @@
 <symbol id="abr-ico-cash" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M5 8h1m12 8h1"/></symbol>
 <symbol id="abr-ico-coins" viewBox="0 0 24 24"><ellipse cx="9" cy="7" rx="6" ry="3"/><path d="M3 7v9c0 2 12 2 12 0V7M3 10c0 3 12 3 12 0M3 13c0 3 12 3 12 0"/><path d="M15 11c3-1 6 0 6 2v6c0 2-5 3-8 1M15 16c3 1 6 0 6-1"/></symbol>
 </svg><main>
-<header class="top abr-premium-header"><div class="brand">AÇOUGUE<br/><b>ABR</b></div><div class="abr-header-title"><h1>ABR FINANCEIRO</h1><p class="muted" id="periodo">14/11/2026 EM DIANTE</p><span class="version">VERSÃO 6.6.6 • VENDAS SIMPLES</span><span class="abr-sim-indicator" id="abr-sim-indicator" hidden>SIMULAÇÃO</span></div><nav class="abr-top-nav" aria-label="Menu principal"><button type="button" data-abr-go="inicio" class="active"><span>▥</span>Resumo</button><button type="button" data-abr-go="registrar"><span>＋</span>Lançamentos</button><button type="button" data-abr-go="vendasdia"><span>▣</span>Vendas</button><button type="button" data-abr-go="pendencias"><span>▤</span>Fornecedores</button><button type="button" data-abr-go="mais"><span>⚙</span>Config.</button></nav></header><section aria-label="Início do financeiro" class="abr-screen-home" id="abr-home">
+<header class="top abr-premium-header"><div class="brand">AÇOUGUE<br/><b>ABR</b></div><div class="abr-header-title"><h1>ABR FINANCEIRO</h1><p class="muted" id="periodo">14/11/2026 EM DIANTE</p><span class="version">VERSÃO 6.6.8 • TROCO PENDENTE</span><span class="abr-sim-indicator" id="abr-sim-indicator" hidden>SIMULAÇÃO</span></div><nav class="abr-top-nav" aria-label="Menu principal"><button type="button" data-abr-go="inicio" class="active"><span>▥</span>Resumo</button><button type="button" data-abr-go="registrar"><span>＋</span>Lançamentos</button><button type="button" data-abr-go="vendasdia"><span>▣</span>Vendas</button><button type="button" data-abr-go="pendencias"><span>▤</span>Fornecedores</button><button type="button" data-abr-go="mais"><span>⚙</span>Config.</button></nav></header><section aria-label="Início do financeiro" class="abr-screen-home" id="abr-home">
 <div class="abr-kpis" aria-label="Resumo financeiro e simulação de recebimentos">
 <button type="button" class="abr-kpi abr-kpi-action positive" data-abr-card-action="accounts" aria-label="Quanto tenho; detalhar saldos"><span class="abr-kpi-icon"><svg><use href="#abr-ico-wallet"/></svg></span><span class="abr-kpi-copy"><small>QUANTO TENHO</small><strong id="abr-home-caixa">—</strong></span></button>
 <button type="button" class="abr-kpi abr-kpi-action negative" data-abr-card-action="payables" aria-label="Contas a pagar; ver fornecedores"><span class="abr-kpi-icon"><svg><use href="#abr-ico-bill"/></svg></span><span class="abr-kpi-copy"><small>CONTAS A PAGAR</small><strong id="abr-home-debitos">—</strong></span></button>
@@ -113,7 +113,7 @@
 <button type="button" class="abr-kpi abr-kpi-action neutral" data-abr-card-action="receivable" id="abr-home-after-card" aria-label="Faltaria para quitar após receber; abrir simulação"><span class="abr-kpi-icon"><svg><use href="#abr-ico-target"/></svg></span><span class="abr-kpi-copy"><small id="abr-home-after-title">FALTARIA PRA QUITAR APÓS RECEBER</small><strong id="abr-home-faltaria-receber">—</strong><span class="abr-kpi-note" id="abr-home-after-note">Com os recebimentos simulados</span></span></button>
 </div>
 
-<section class="abr-panel abr-home-accounts">
+<section class="abr-panel abr-home-accounts"><div id="abr-pending-home" class="abr-pending-card" hidden></div>
 <div class="abr-panel-title"><h2>SALDOS POR CONTA</h2><button class="abr-text-button" id="abr-reconcile-open" type="button">Conferir saldos</button></div>
 <div class="abr-account-buttons" id="abr-account-buttons">
 <div class="abr-account-tile"><label class="abr-account-button"><input type="checkbox" data-abr-select-account="Pix" checked aria-label="Somar PIX"><span>PIX</span><strong data-abr-amount="Pix">—</strong></label><button class="abr-account-details-button" data-abr-account="Pix" type="button" title="Ver movimentações de PIX" aria-label="Ver movimentações de PIX">⌄</button></div>
@@ -196,7 +196,7 @@
   <div class="formTotal abr-sale-total"><span>Total da venda</span><strong id="totalVenda">R$ 0,00</strong></div>
   <details class="abr-sale-extra" id="abr-venda-extras"><summary>Cliente ou observação (se precisar)</summary>
     <div class="formgrid"><div><label for="clienteVenda">Cliente (obrigatório se fiado)</label><input id="clienteVenda" placeholder="Nome do cliente"/></div>
-    <div><label for="obsVenda">Observação (opcional)</label><input id="obsVenda" placeholder="Ex.: pedido do balcão"/></div></div>
+    <div><label for="abr-pending-new">Troco que fiquei devendo (R$)</label><input id="abr-pending-new" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0,00"/><small>Descontado do disponível até entregar ao cliente.</small></div><div><label for="obsVenda">Observação (opcional)</label><input id="obsVenda" placeholder="Ex.: pedido do balcão"/></div></div>
   </details>
   <div class="abr-receipt-section">
     <div id="pagamentoVenda">
@@ -355,7 +355,7 @@
 <div id="abr-receivable-list" class="abr-receivable-list"></div>
 <div class="abr-receivable-preview" id="abr-receivable-preview" aria-live="polite"></div>
 <button type="button" id="abr-receivable-done" class="abr-receivable-done">Ver resultado</button>
-</dialog><script defer src="abr-vendas.js?v=666"></script><script defer src="abr-evolucao.js?v=664"></script><style>
+</dialog><script defer src="abr-vendas.js?v=668"></script><script defer src="abr-evolucao.js?v=664"></script><style>
 .abr-more-group{display:contents}.abr-more-label{grid-column:1/-1;color:#9da8b6;font-size:11px;letter-spacing:.09em;font-weight:700;margin:5px 0 0}
 .abr-history-quick{display:flex;justify-content:flex-end;margin-bottom:10px}.abr-history-quick button{width:auto!important}
 @media(max-width:600px){.abr-bottom-nav button{min-width:0!important;font-size:10px!important;padding-left:2px!important;padding-right:2px!important}.abr-bottom-nav button span{font-size:21px!important}}
@@ -377,4 +377,4 @@
     });
   });
 })();
-</script></body></html>
+</script><script defer src="abr-troco-pendente.js?v=668"></script></body></html>

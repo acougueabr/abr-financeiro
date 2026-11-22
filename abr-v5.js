@@ -47,7 +47,7 @@
     goto('registrar');
     $('data').focus({preventScroll:true});
   }
-  function availableBalances(){return balance()}
+  function availableBalances(){const b=balance();b['Troco reservado ao cliente']=round2(-trocoReservado());return b}
   function dashboardFinancial(){
     const regs=state.registros;
     const available= sum(Object.values(availableBalances()));
