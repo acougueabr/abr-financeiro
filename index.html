@@ -196,7 +196,7 @@
   <div class="formTotal abr-sale-total"><span>Total da venda</span><strong id="totalVenda">R$ 0,00</strong></div>
   <details class="abr-sale-extra" id="abr-venda-extras"><summary>Cliente ou observação (se precisar)</summary>
     <div class="formgrid"><div><label for="clienteVenda">Cliente (obrigatório se fiado)</label><input id="clienteVenda" placeholder="Nome do cliente"/></div>
-    <div><label for="abr-pending-new">Troco que fiquei devendo (R$)</label><input id="abr-pending-new" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0,00"/><small>Descontado do disponível até entregar ao cliente.</small></div><div><label for="obsVenda">Observação (opcional)</label><input id="obsVenda" placeholder="Ex.: pedido do balcão"/></div></div>
+<div><label for="obsVenda">Observação (opcional)</label><input id="obsVenda" placeholder="Ex.: pedido do balcão"/></div></div>
   </details>
   <div class="abr-receipt-section">
     <div id="pagamentoVenda">
@@ -248,6 +248,15 @@
       </div>
       <div class="abr-change-group">
         <div class="abr-receipt-head abr-change-head"><h3>Troco</h3><div class="abr-change-amount"><span>Calculado</span><strong id="trocoPrevisto">R$ 0,00</strong></div></div>
+        <div class="abr-pending-inline" id="abr-pending-inline">
+          <label class="checkrow"><input type="checkbox" id="abr-pending-toggle"/> <strong>Fiquei devendo troco ao cliente</strong></label>
+          <div id="abr-pending-fields" class="hidden">
+            <label for="abr-pending-new">Quanto ficou devendo? (R$)</label>
+            <input id="abr-pending-new" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0,00"/>
+            <div class="abr-pending-preview">Troco a entregar agora: <strong id="abr-pending-now">R$ 0,00</strong></div>
+            <small>O valor pendente não entra no Quanto tenho disponível. Você poderá registrar a entrega depois.</small>
+          </div>
+        </div>
         <div class="abr-troco-row">
         <div><label>Como devolver?</label><div class="abr-fast-methods abr-fast-methods-change" role="group" aria-label="Forma de troco">
           <button type="button" data-abr-change-method="Espécie cédulas" class="active" aria-pressed="true">Cédulas</button>
@@ -377,4 +386,4 @@
     });
   });
 })();
-</script><script defer src="abr-troco-pendente.js?v=668"></script></body></html>
+</script><script defer src="abr-troco-pendente.js?v=669"></script></body></html>

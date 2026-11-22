@@ -72,7 +72,7 @@ function initialize(){
 }
 const n=r=>round2(r.valor);
 const paid=id=>sum(state.registros.filter(r=>['pagamento','recebimento'].includes(r.tipo)&&r.vinculo===id).map(n));
-const initialSaleReceived=r=>Array.isArray(r.recebimentos)?round2(sum(r.recebimentos.map(p=>p.valor))-Number(r.troco?.valor||0)):0;
+const initialSaleReceived=r=>Array.isArray(r.recebimentos)?round2(sum(r.recebimentos.map(p=>p.valor))-(Number(r.troco?.valor||0)+Number(r.trocoPendente||0))):0;
 const restante=r=>Math.max(0,round2(n(r)-paid(r.id)-(r.tipo==='venda'?initialSaleReceived(r):0)));
 // Troco prometido ao cliente: reserva no disponível, sem saída física até a entrega.
 const trocoPendenteAberto=r=>r&&r.tipo==='venda'?Math.max(0,round2(Number(r.trocoPendente||0)-sum(state.registros.filter(x=>x.tipo==='ajuste'&&x.trocoLiquidacao===true&&x.vinculo===r.id).map(x=>-Number(x.valor||0))))):0;
@@ -554,7 +554,7 @@ function submitForm(e){
     const cliente=el('clienteVenda').value.trim();if(pendente>0&&!cliente){alert('Informe o nome do cliente para a parte fiada.');return}
     if(entradas.some(p=>!p.conta||p.taxa<0||p.taxa>p.valor)||!Number.isFinite(bruto)){alert('Confira as formas de pagamento e as taxas. A taxa não pode superar o valor recebido.');return}
     const troco=saleTrocoObject(trocoValor);if(troco===false)return;
-    const pendenteTroco=round2(num('abr-pending-new'));
+    const pendenteTroco=el('abr-pending-toggle').checked?round2(num('abr-pending-new')):0;
     if(pendenteTroco<0||pendenteTroco>trocoValor+.005){alert('O troco pendente não pode superar o troco total da venda.');return}
     const trocoFinal=troco?structuredClone(troco):null;
     if(pendenteTroco>.005){
