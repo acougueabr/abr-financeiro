@@ -179,17 +179,19 @@ function supplierStatus(r){
   return done>0.005?{label:'PARCIAL',style:'partial'}:{label:'PENDENTE',style:'due'};
 }
 function supplierRow(r){
-  const info=supplierInfo(r),status=supplierStatus(r);
-  const remaining=r.status==='pendente'?restante(r):0;
-  const qty=Number(info.quantidade||0);
-  const unit=info.unidade||'kg';
-  const per=Number(info.preco||0);
-  const priceText=qty>0&&per>0?`${fmtQty(qty,unit)} × ${money(per)}/${esc(unit)}`:(qty>0?fmtQty(qty,unit):'Quantidade não informada');
-  // Compras consolidadas de 159 kg: duas entregas informativas associadas a UMA ÚNICA compra paga.
-  if(info.lotes?.length){
-    return `<div class="supplierLine"><div class="supplierLineHead"><strong>1ª e 2ª bandas • compra conjunta</strong><span class="status ${status.style}">${status.label}</span></div>${info.lotes.map(l=>`<div class="supplierMeta">${niceDate(l.data)} — <b>${fmtQty(l.quantidade,unit)} × ${money(per)}/${esc(unit)}</b><br>Custo bruto: ${money(l.quantidade*per)}</div>`).join('')}<div class="supplierMeta">Descontos conjuntos: ${money(info.desconto)}. <b>Total efetivamente pago: ${money(n(r))}</b>. Sem atribuir descontos a um dia específico.</div></div>`;
-  }
-  return `<div class="supplierLine"><div class="supplierLineHead"><strong>${niceDate(r.data)} • ${esc(info.produto||'Mercadoria')}</strong><span class="status ${status.style}">${status.label}</span></div><div class="supplierMeta">${priceText}${info.desconto>0?` • Desconto: ${money(info.desconto)}`:''}${info.pessoa?`<br>Fornecedor no lançamento: ${esc(info.pessoa)}`:''}</div><div class="entry"><span class="muted">Custo da compra</span><b>${money(n(r))}</b></div>${remaining>0?`<div class="entry"><span class="muted">${paid(r.id)>0?'Pago até agora / falta':'Falta pagar'}</span><b class="red">${paid(r.id)>0?money(paid(r.id))+' / ':''}${money(remaining)}</b></div><button type="button" class="secondary smallBtn" data-pay-supplier="${esc(r.id)}">Registrar pagamento</button>`:''}</div>`;
+ const info=supplierInfo(r),status=supplierStatus(r),unit=info.unidade||'kg',remaining=supplierDue(r);
+ const payments=state.registros.filter(p=>p.tipo==='pagamento'&&p.vinculo===r.id).sort((a,b)=>a.data.localeCompare(b.data));
+ const card=(title,date,q,price,total,extra='')=>`<div class="supplierLine abr-purchase-compact"><div class="supplierLineHead"><strong>${esc(title)}</strong><span class="status ${status.style}">${status.label}</span></div><small class="abr-purchase-date">COMPRA EM ${niceDate(date)}</small><div class="abr-purchase-metrics"><strong>${q>0?fmtQty(q,unit):'—'}</strong><span>${price>0?money(price)+' por '+esc(unit):'Preço não informado'}</span></div><div class="entry"><span>Valor da compra</span><b>${money(total)}</b></div>${extra}</div>`;
+ if(info.lotes?.length)return info.lotes.map((l,i)=>card(`${i+1}ª banda`,l.data,l.quantidade,info.preco,l.quantidade*info.preco,'<small>Pagamento: data não informada</small>')).join('')+`<div class="supplierLine"><small>Desconto conjunto: −${money(info.desconto)}</small><div class="entry"><span>Total pago</span><b>${money(n(r))}</b></div></div>`;
+ const title=r.detalhe||String(r.descricao||info.produto||'Mercadoria').replace(/^Carne bovina — /,'');
+ const extra=`${info.desconto>0?`<small>Desconto: ${money(info.desconto)}</small>`:''}<small>Pagamento: ${payments.length?niceDate(payments.at(-1).data):'a informar'}</small>${payments.length?`<details><summary>Pagamentos (${payments.length})</summary>${payments.map(p=>`<div class="entry"><span>${niceDate(p.data)}</span><b>${money(n(p))}</b></div>`).join('')}</details>`:''}${remaining>0?`<div class="entry"><span>Falta pagar</span><b class="red">${money(remaining)}</b></div>`:''}<div class="abr-row-buttons">${remaining>0?`<button type="button" class="secondary smallBtn" data-abr-simulate="${esc(r.id)}">Simular</button><button type="button" class="smallBtn" data-abr-confirm="${esc(r.id)}">Pagar</button>`:''}${!r.legacy?`<button type="button" class="secondary smallBtn" data-edit-purchase="${esc(r.id)}" aria-label="Editar compra">✎</button>`:''}</div>`;
+ return card(title,r.data,Number(info.quantidade),Number(info.preco),n(r),extra);
+}
+function editPurchase(id){
+ const r=state.registros.find(x=>x.id===id&&x.tipo==='compra'&&!x.legacy);if(!r)return;
+ const d=document.getElementById('abr-edit-purchase');const f=d.querySelector('form');
+ for(const k of ['data','quantidade','preco','desconto','pessoa','produto','unidade','descricao'])f.elements[k].value=r[k]??(k==='desconto'?0:'');
+ f.onsubmit=e=>{e.preventDefault();const v=Object.fromEntries(new FormData(f));const quantidade=Number(v.quantidade),preco=Number(v.preco),desconto=Number(v.desconto),valor=round2(quantidade*preco-desconto);if(!v.data||quantidade<=0||preco<=0||desconto<0||valor<=0||valor<paid(id)){alert('Confira os valores. O total não pode ser menor que os pagamentos vinculados.');return;}if(!confirm('Salvar alteração? O valor da compra e os saldos serão recalculados.'))return;const old={...r};Object.assign(r,v,{quantidade,preco,desconto,valor});if(!save()){Object.assign(r,old);return;}d.close();render();};d.showModal();
 }
 // Fornecedores são separados por nome E mercadoria: não mistura contas de
 // dois fornecedores diferentes da mesma categoria em um extrato.
@@ -752,6 +754,7 @@ function bind(){
   el('produtoCompra').innerHTML=productOptions();el('produtoEstoque').innerHTML=productOptions();
   el('produtoCompra').addEventListener('change',()=>{el('fornecedorCompra').value=state.fornecedores[el('produtoCompra').value]||''});
   el('painelFornecedores').addEventListener('click',e=>{
+    const edit=e.target.closest('[data-edit-purchase]');if(edit){editPurchase(edit.dataset.editPurchase);return;}
     const saveBtn=e.target.closest('[data-save-supplier]');
     if(saveBtn){const card=saveBtn.closest('[data-supplier-category]');saveSupplierName(saveBtn.dataset.saveSupplier,card.querySelector('.supplierName').value);return}
     const payBtn=e.target.closest('[data-pay-supplier]');if(payBtn){startSupplierPayment(payBtn.dataset.paySupplier);return}

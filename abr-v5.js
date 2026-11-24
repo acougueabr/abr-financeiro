@@ -19,12 +19,12 @@
     if(name==='mais'){
       document.querySelectorAll('#abr-more-hub [data-abr-sub]').forEach(b=>b.classList.toggle('abr-selected',b.dataset.abrSub===sub));
     }
-    const label={inicio:'Início',registrar:'Registrar',vendasdia:'Vendas do dia',pendencias:'Débitos',historico:'Histórico',mais:'Mais'}[name];
+    const label={inicio:'Início',registrar:'Registrar',vendasdia:'Vendas do dia',pendencias:'Débitos',historico:'Histórico',mais:'Mais',evolucao:'Evolução'}[name];
     document.title=`ABR Financeiro • ${label||'Início'}`;
     window.scrollTo({top:0,behavior:'instant'});
     try {history.replaceState(null,'','#'+(name==='mais'&&sub?sub:name));}catch{}
   };
-  const knownPages=new Set(['inicio','registrar','vendasdia','pendencias','historico','mais']);
+  const knownPages=new Set(['inicio','registrar','vendasdia','pendencias','historico','mais','evolucao']);
   function goto(name,sub){show(knownPages.has(name)?name:'inicio',sub||null)}
   function quick(type, preset=''){
     $('tipo').value=type;
@@ -602,7 +602,7 @@
   };
   $('abr-payment-confirm').onclick=confirmPayment;
   $('abr-evo-range').onchange=paintEvolution;
-  $('abr-fast-week').onclick=()=>quick('despesa','salario');
+  $('abr-fast-week').onclick=()=>{quick('despesa','salario');$('data').value=today();};
   $('abr-fast-scale').onclick=()=>quick('investimento','balanca');
   $('abr-transfer-form').addEventListener('submit',transfer);
   $('abr-vendas-dia').addEventListener('click',e=>{const b=e.target.closest('[data-abr-go]');if(b)goto(b.dataset.abrGo)});
