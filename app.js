@@ -73,7 +73,7 @@ function initialize(){
 const n=r=>round2(r.valor);
 const paid=id=>sum(state.registros.filter(r=>['pagamento','recebimento'].includes(r.tipo)&&r.vinculo===id).map(n));
 const initialSaleReceived=r=>Array.isArray(r.recebimentos)?round2(sum(r.recebimentos.map(p=>p.valor))-(Number(r.troco?.valor||0)+Number(r.trocoPendente||0))):0;
-const restante=r=>Math.max(0,round2(n(r)-paid(r.id)-(r.tipo==='venda'?initialSaleReceived(r):0)));
+const restante=r=>Math.max(0,round2(n(r)-paid(r.id)-(r.tipo==='venda'?(r.compensacaoFornecedor?n(r):initialSaleReceived(r)):0)));
 // Troco prometido ao cliente: reserva no disponível, sem saída física até a entrega.
 const trocoPendenteAberto=r=>r&&r.tipo==='venda'?Math.max(0,round2(Number(r.trocoPendente||0)-sum(state.registros.filter(x=>x.tipo==='ajuste'&&x.trocoLiquidacao===true&&x.vinculo===r.id).map(x=>-Number(x.valor||0))))):0;
 const trocoReservado=()=>sum(state.registros.filter(r=>r.tipo==='venda').map(trocoPendenteAberto));
@@ -184,9 +184,21 @@ function supplierRow(r){
  const card=(title,date,q,price,total,extra='')=>`<div class="supplierLine abr-purchase-compact"><div class="supplierLineHead"><strong>${esc(title)}</strong><span class="status ${status.style}">${status.label}</span></div><small class="abr-purchase-date">COMPRA EM ${niceDate(date)}</small><div class="abr-purchase-metrics"><strong>${q>0?fmtQty(q,unit):'—'}</strong><span>${price>0?money(price)+' por '+esc(unit):'Preço não informado'}</span></div><div class="entry"><span>Valor da compra</span><b>${money(total)}</b></div>${extra}</div>`;
  if(info.lotes?.length)return info.lotes.map((l,i)=>card(`${i+1}ª banda`,l.data,l.quantidade,info.preco,l.quantidade*info.preco,'<small>Pagamento: data não informada</small>')).join('')+`<div class="supplierLine"><small>Desconto conjunto: −${money(info.desconto)}</small><div class="entry"><span>Total pago</span><b>${money(n(r))}</b></div></div>`;
  const title=r.detalhe||String(r.descricao||info.produto||'Mercadoria').replace(/^Carne bovina — /,'');
- const extra=`${info.desconto>0?`<small>Desconto: ${money(info.desconto)}</small>`:''}<small>Pagamento: ${payments.length?niceDate(payments.at(-1).data):'a informar'}</small>${payments.length?`<details><summary>Pagamentos (${payments.length})</summary>${payments.map(p=>`<div class="entry"><span>${niceDate(p.data)}</span><b>${money(n(p))}</b></div>`).join('')}</details>`:''}${remaining>0?`<div class="entry"><span>Falta pagar</span><b class="red">${money(remaining)}</b></div>`:''}<div class="abr-row-buttons">${remaining>0?`<button type="button" class="secondary smallBtn" data-abr-simulate="${esc(r.id)}">Simular</button><button type="button" class="smallBtn" data-abr-confirm="${esc(r.id)}">Pagar</button>`:''}${!r.legacy?`<button type="button" class="secondary smallBtn" data-edit-purchase="${esc(r.id)}" aria-label="Editar compra">✎</button>`:''}</div>`;
+ const extra=`${info.desconto>0?`<small>Desconto: ${money(info.desconto)}</small>`:''}<small>Pagamento: ${payments.length?niceDate(payments.at(-1).data):'a informar'}</small>${payments.length?`<details><summary>Pagamentos (${payments.length})</summary>${payments.map(p=>`<div class="entry"><span>${niceDate(p.data)}${p.abatimento?` · Abatimento: ${esc(p.detalhe)} (${fmtQty(p.quantidade)} × ${money(p.preco)}/kg)` : ''}</span><b>${money(n(p))}</b></div>`).join('')}</details>`:''}${remaining>0?`<div class="entry"><span>Falta pagar</span><b class="red">${money(remaining)}</b></div>`:''}<div class="abr-row-buttons">${remaining>0?`<button type="button" class="secondary smallBtn" data-abr-simulate="${esc(r.id)}">Simular</button><button type="button" class="secondary smallBtn" data-abater="${esc(r.id)}">Abater dívida</button><button type="button" class="smallBtn" data-abr-confirm="${esc(r.id)}">Pagar</button>`:''}${!r.legacy?`<button type="button" class="secondary smallBtn" data-edit-purchase="${esc(r.id)}" aria-label="Editar compra">✎</button>`:''}</div>`;
  return card(title,r.data,Number(info.quantidade),Number(info.preco),n(r),extra);
 }
+function openAbatement(id){
+ const r=state.registros.find(x=>x.id===id);if(!r||!isDebt(r)||r.tipo!=='compra'||restante(r)<=0)return;
+ const d=document.createElement('dialog');d.className='abr-supplier-statement-dialog';d.style.cssText='width:min(94vw,440px);padding:20px;color:inherit;background:#19212b;border:1px solid #444;border-radius:14px';
+ d.innerHTML=`<form><h2>Abater dívida</h2><p>Saldo atual: <b>${money(restante(r))}</b></p><label>Data da entrega<input name="data" type="date" required value="${today()}"></label><label>Mercadoria<select name="produto">${productOptions()}</select></label><label>Corte / detalhe<input name="corte" required placeholder="Ex.: Patinho"></label><label>Quantidade (kg)<input name="kg" type="number" min="0.001" step="0.001" required></label><label>Valor por kg (R$)<input name="preco" type="number" min="0.01" step="0.01" required></label><p data-preview></p><div class="abr-row-buttons"><button type="button" class="secondary" data-cancel>Cancelar</button><button type="submit">Registrar abatimento</button></div></form>`;
+ document.body.append(d);const f=d.querySelector('form'),v=f.elements;v.produto.value=supplierCategory(r)||'Carne bovina';
+ const total=()=>round2(Number(v.kg.value)*Number(v.preco.value));const preview=()=>{d.querySelector('[data-preview]').textContent=`Abatimento: ${money(total())} · Saldo após: ${money(Math.max(0,restante(r)-total()))}`;};f.oninput=preview;preview();d.querySelector('[data-cancel]').onclick=()=>d.close();d.onclose=()=>d.remove();
+ f.onsubmit=e=>{e.preventDefault();const valor=total(),kg=Number(v.kg.value),preco=Number(v.preco.value),detalhe=v.corte.value.trim(),data=v.data.value,produto=v.produto.value;if(!detalhe||!data||!Number.isFinite(valor)||valor<=0||valor>restante(r)+.001){alert('Confira os dados. O abatimento não pode exceder a dívida.');return;}if(!confirm('Registrar uma nova venda compensada, sem movimentar caixa? Não registre novamente se esta carne já foi lançada como venda.'))return;
+ const old=state.registros.slice(),grupoTransferencia=uid(),criadoEm=new Date().toISOString(),pessoa=r.pessoa||state.fornecedores[supplierCategory(r)]||'';
+ state.registros.push({id:uid(),tipo:'pagamento',data,criadoEm,descricao:'Abatimento — '+detalhe,detalhe,quantidade:kg,preco,valor,pessoa,status:'quitado',vinculo:r.id,semCaixa:true,abatimento:true,grupoTransferencia},{id:uid(),tipo:'venda',data,criadoEm,descricao:'Venda compensada — '+detalhe,pessoa,valor,status:'quitado',semCaixa:true,compensacaoFornecedor:true,recebimentos:[],itens:[{produto,detalhe,quantidade:kg,unidade:'kg',preco,total:valor}],grupoTransferencia});
+ if(!save()){state.registros=old;return;}d.close();render();};d.showModal();
+}
+
 function editPurchase(id){
  const r=state.registros.find(x=>x.id===id&&x.tipo==='compra'&&!x.legacy);if(!r)return;
  const d=document.getElementById('abr-edit-purchase');const f=d.querySelector('form');
@@ -267,7 +279,7 @@ function supplierStatementRows(group){
       // do pagamento original. Nunca inventar essa data.
       paymentRows.push({date:'—',description:'Compra registrada como já paga (data do pagamento não informada)',amount:n(r)});
     }else{
-      for(const p of related)paymentRows.push({date:p.data,description:'Pagamento registrado',amount:n(p)});
+      for(const p of related)paymentRows.push({date:p.data,description:p.abatimento?`Abatimento — ${p.detalhe} · ${fmtQty(p.quantidade)} × ${money(p.preco)}/kg`:'Pagamento registrado',amount:n(p)});
     }
   }
   return {purchaseRows,paymentRows};
@@ -637,7 +649,7 @@ function renderSalesDay(){
     const client=r.pessoa?`<div class="abr-sales-meta">Cliente: ${esc(r.pessoa)}</div>`:'';
     const note=r.observacao?`<div class="abr-sales-meta">${esc(r.observacao)}</div>`:'';
     const status=restante(r)>0.005?`<div class="abr-sales-detail-line abr-sales-due"><span>Fiado a receber</span><b>${money(restante(r))}</b></div>`:'';
-    return `<details class="abr-sale-record"><summary><span class="abr-sale-no">${index+1}</span><span class="abr-sale-name">${esc(title)}</span><strong>${money(r.valor)}</strong><span class="abr-sale-chevron">⌄</span></summary><div class="abr-sale-record-body">${itemRows}${received||'<div class="abr-sales-meta">Sem pagamento registrado</div>'}${change}${status}${client}${note}</div></details>`;
+    return `<details class="abr-sale-record"><summary><span class="abr-sale-no">${index+1}</span><span class="abr-sale-name">${esc(title)}</span><strong>${money(r.valor)}</strong><span class="abr-sale-chevron">⌄</span></summary><div class="abr-sale-record-body">${itemRows}${r.compensacaoFornecedor?'<div class="abr-sales-meta">Compensação com fornecedor — sem entrada no caixa</div>':received||'<div class="abr-sales-meta">Sem pagamento registrado</div>'}${change}${status}${client}${note}</div></details>`;
   }).join('');
   const consolidated=state.registros.filter(r=>r.tipo==='venda'&&r.legacy&&!r.semFaturamento&&r.data===date);
   if(consolidated.length){list.insertAdjacentHTML('beforeend',`<div class="abr-sales-legacy">${money(sum(consolidated.map(n)))} em vendas antigas consolidadas (sem registros individuais).</div>`)}
@@ -754,6 +766,7 @@ function bind(){
   el('produtoCompra').innerHTML=productOptions();el('produtoEstoque').innerHTML=productOptions();
   el('produtoCompra').addEventListener('change',()=>{el('fornecedorCompra').value=state.fornecedores[el('produtoCompra').value]||''});
   el('painelFornecedores').addEventListener('click',e=>{
+    const ab=e.target.closest('[data-abater]');if(ab){openAbatement(ab.dataset.abater);return;}
     const edit=e.target.closest('[data-edit-purchase]');if(edit){editPurchase(edit.dataset.editPurchase);return;}
     const saveBtn=e.target.closest('[data-save-supplier]');
     if(saveBtn){const card=saveBtn.closest('[data-supplier-category]');saveSupplierName(saveBtn.dataset.saveSupplier,card.querySelector('.supplierName').value);return}
