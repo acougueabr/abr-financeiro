@@ -312,16 +312,13 @@ function showSupplierStatement(key){
   const {purchaseRows,paymentRows}=supplierStatementRows(group);
   const total=sum(group.regs.map(n)),pago=sum(group.regs.map(supplierPaid)),falta=sum(group.regs.map(supplierDue));
   const rowHtml=rows=>rows.length?rows.map(r=>`<tr><td>${r.date==='—'?'—':niceDate(r.date)}</td><td>${esc(r.description)}</td><td class="abr-statement-money">${money(r.amount)}</td></tr>`).join(''):'<tr><td colspan="3">Nenhum registro</td></tr>';
-  const content=`<div class="abr-statement-brand"><span>AÇOUGUE <b>ABR</b></span><small>EXTRATO PARA CONFERÊNCIA</small></div>
-    <h2>${esc(group.name)}</h2><p class="abr-statement-subtitle">${esc(group.cat)} • Gerado em ${niceDate(today())}</p>
-    <div class="abr-statement-summary"><div><small>COMPRAS</small><b>${money(total)}</b></div><div><small>PAGAMENTOS</small><b>${money(pago)}</b></div><div><small>SALDO A PAGAR</small><b>${money(falta)}</b></div></div>
-    <h3>Entregas e valores combinados</h3><table><thead><tr><th>Data</th><th>Mercadoria / quantidade</th><th>Valor</th></tr></thead><tbody>${rowHtml(purchaseRows)}</tbody></table>
-    <h3>Pagamentos registrados</h3><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th></tr></thead><tbody>${rowHtml(paymentRows)}</tbody></table>
-    <p class="abr-statement-disclaimer">Extrato de conferência de compras e pagamentos. Não substitui nota fiscal nem recibo de quitação. Valores sujeitos à conferência entre as partes.</p>`;
+  const discounts=sum(group.regs.flatMap(r=>state.registros.filter(p=>p.tipo==='pagamento'&&p.vinculo===r.id&&p.abatimento)).map(n));
+  const cards=group.regs.slice().sort((a,b)=>a.data.localeCompare(b.data)).map(r=>{const t=document.createElement('div');t.innerHTML=supplierRow(r);t.querySelectorAll('button,.abr-row-buttons,.abr-edit-space').forEach(x=>x.remove());return t.innerHTML}).join('');
+  const content=`<div class="abr-statement-brand"><span>AÇOUGUE <b>ABR</b></span><small>EXTRATO DE FORNECIMENTO</small></div><h2>${esc(group.name)}</h2><p class="abr-statement-subtitle">${niceDate(today())}</p><div class="abr-statement-cards">${cards}</div><div class="abr-clean-line"><span>Total comprado (líquido)</span><b>${money(total)}</b></div><div class="abr-clean-line"><span>Total pago</span><b>${money(pago-discounts)}</b></div>${discounts?`<div class="abr-clean-line"><span>Descontos de carne</span><b>${money(discounts)}</b></div>`:''}<div class="abr-clean-line"><strong>Total a pagar</strong><b>${money(falta)}</b></div>`;
   currentSupplierStatementText=[
     'AÇOUGUE ABR — EXTRATO PARA CONFERÊNCIA',
     `Fornecedor: ${group.name} (${group.cat})`,
-    `Compras: ${money(total)} | Pagamentos: ${money(pago)} | Saldo a pagar: ${money(falta)}`,
+    `Compras: ${money(total)} | Pagamentos: ${money(pago-discounts)} | Descontos: ${money(discounts)} | Saldo a pagar: ${money(falta)}`,
     '', 'ENTREGAS E VALORES COMBINADOS',
     ...purchaseRows.map(r=>`${r.date==='—'?'—':niceDate(r.date)} | ${r.description} | ${money(r.amount)}`),
     '', 'PAGAMENTOS REGISTRADOS',
@@ -340,6 +337,7 @@ function printSupplierStatement(){
   popup.document.open();
   popup.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Extrato do fornecedor • Açougue ABR</title><style>
     *{box-sizing:border-box}body{margin:0;background:#f2f3f5;color:#111;font:14px Arial,sans-serif}.paper{max-width:790px;margin:25px auto;padding:36px;background:#fff;box-shadow:0 3px 16px #0001}.abr-statement-brand{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #bf2739;padding-bottom:13px}.abr-statement-brand span{font-size:16px;font-weight:700}.abr-statement-brand b{font-size:28px}.abr-statement-brand small{font-size:11px;letter-spacing:1px}.paper h2{font-size:23px;margin:25px 0 4px}.abr-statement-subtitle{color:#666;margin:0 0 22px}.abr-statement-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:20px 0}.abr-statement-summary div{padding:12px;border:1px solid #ddd;border-radius:7px}.abr-statement-summary small{display:block;font-size:10px;color:#555;margin-bottom:6px}.abr-statement-summary b{font-size:17px}.paper h3{font-size:15px;margin:25px 0 9px}.paper table{width:100%;border-collapse:collapse}.paper th,.paper td{padding:9px 7px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}.paper th{background:#f3f3f3;font-size:12px}.paper td:first-child{white-space:nowrap;width:85px}.abr-statement-money{text-align:right!important;white-space:nowrap}.abr-statement-disclaimer{color:#555;font-size:11px;margin-top:30px;line-height:1.5}.tools{position:sticky;top:0;display:flex;justify-content:center;gap:10px;background:#222;padding:12px}.tools button{border:0;border-radius:7px;padding:10px 18px;font-weight:700;cursor:pointer}.tools button:first-child{background:#36d4a2}.tools button:last-child{background:#ddd}@page{size:A4;margin:14mm}@media print{body{background:#fff}.paper{max-width:none;margin:0;padding:0;box-shadow:none}.tools{display:none}.paper tr{break-inside:avoid}}
+  .abr-statement-cards .supplierLine{border:1px solid #ccc;border-radius:8px;padding:12px;margin:10px 0;break-inside:avoid}.supplierLineHead,.abr-purchase-metrics,.abr-clean-line,.abr-pay-compact{display:flex;justify-content:space-between;gap:8px;margin:5px 0}.abr-clean-section{border-top:1px solid #ddd;padding-top:6px}.abr-pay-compact small{display:block}.abr-clean-green{color:#08754b}.red{color:#b82032}
   </style></head><body><div class="tools"><button onclick="window.print()">Imprimir / Salvar PDF</button><button onclick="window.close()">Fechar</button></div><div class="paper">${content}</div></body></html>`);
   popup.document.close();
   try{popup.opener=null;popup.focus()}catch{}
@@ -376,6 +374,14 @@ function startSupplierPayment(id){
   el('form').classList.remove('hidden');
   el('movimentacao').scrollIntoView({behavior:'smooth',block:'start'});
   el('valorGeral').focus({preventScroll:true});
+}
+function batchSettlement(){
+ const tipo=el('tipo').value;if(!['pagamento','recebimento'].includes(tipo))return;
+ const eligible=state.registros.filter(r=>(tipo==='pagamento'?isDebt(r):isReceivable(r))&&restante(r)>.005).sort((a,b)=>String(a.pessoa||'').localeCompare(String(b.pessoa||''))||a.data.localeCompare(b.data));
+ const accounts=['Pix','Espécie cédulas','Espécie moedas','Maquininha'];
+ const fields=`<label>Data<input name="data" type="date" required value="${el('data').value||today()}"></label>${eligible.map((r,i)=>`<div class="abr-batch-line"><label><input type="checkbox" name="c${i}"> ${esc(r.pessoa||'')} · ${esc(r.descricao)} · ${money(restante(r))}</label><input name="v${i}" type="number" min="0.01" max="${restante(r)}" step="0.01" value="${restante(r).toFixed(2)}"></div>`).join('')}<p>Total selecionado: <b data-batch-total>R$ 0,00</b></p>${accounts.map((a,i)=>`<label>${supplierAccountLabel(a)}<input name="a${i}" type="number" min="0" step="0.01" placeholder="0,00"></label>`).join('')}`;
+ const d=supplierEditDialog(tipo==='pagamento'?'Pagar várias dívidas':'Receber várias dívidas',fields,(f,d)=>{const chosen=eligible.map((r,i)=>({r,v:f.elements['c'+i].checked?round2(Number(f.elements['v'+i].value)):0})).filter(x=>x.v>0);const parts=accounts.map((conta,i)=>({conta,v:round2(Number(f.elements['a'+i].value))}));const total=sum(chosen.map(x=>x.v));if(!total||chosen.some(x=>x.v>restante(x.r)+.005)||Math.abs(total-sum(parts.map(x=>x.v)))>.005||parts.some(x=>x.v<0)){alert('Confira os valores: as formas de pagamento devem somar o total selecionado.');return}const b=balance();if(tipo==='pagamento'&&parts.some(x=>x.v>(b[x.conta]||0)+.005)&&!confirm('Uma conta ficará negativa. Continuar?'))return;const old=state.registros,records=[];for(const {r,v} of chosen){let left=v;const group=uid();for(const part of parts){const value=round2(Math.min(left,part.v));if(value<=0)continue;records.push({id:uid(),tipo,data:f.elements.data.value,criadoEm:new Date().toISOString(),descricao:(tipo==='pagamento'?'Pagamento — ':'Recebimento — ')+r.descricao,pessoa:r.pessoa||'',valor:value,conta:part.conta,status:'quitado',vinculo:r.id,grupoTransferencia:group});left=round2(left-value);part.v=round2(part.v-value)}}state.registros=old.concat(records);if(!save()){state.registros=old;return}d.close();render();resetForm();showSaveToast('Movimentações registradas');});
+ const f=d.querySelector('form');f.addEventListener('input',()=>{f.querySelector('[data-batch-total]').textContent=money(sum(eligible.map((r,i)=>f.elements['c'+i].checked?Number(f.elements['v'+i].value)||0:0)))});
 }
 function refreshLinks(){
   const tipo=el('tipo').value;
@@ -418,18 +424,19 @@ function cardRate(i){
   const channel=el('canal'+i).value,kind=el('cartao'+i).value;
   return ABR_CARD_RATES[channel]?.[kind]??0;
 }
+function receivedAmount(i){const f=el('recebido'+i);return i===1&&f.value===''&&!el('pagamentoMisto').checked?Math.max(0,saleTotal()):num('recebido'+i)}
 function syncCardFee(i){
   const field=el('taxa'+i),isCard=el('metodo'+i).value==='Maquininha';
   const preview=el('abr-fee-preview'+i);
   if(!isCard){field.value='';delete field.dataset.userEdited;preview.textContent='';return}
-  const gross=round2(num('recebido'+i)),rate=cardRate(i);
+  const gross=round2(receivedAmount(i)),rate=cardRate(i);
   if(!field.dataset.userEdited)field.value=(Math.round(cents(gross)*rate/100)/100).toFixed(2);
   const fee=round2(num('taxa'+i));
   preview.textContent=`${rate.toFixed(2).replace('.',',')}% • Taxa ${money(fee)} • Líquido ${money(Math.max(0,round2(gross-fee)))}`;
 }
 function paymentEntry(i){
   const choice=el('metodo'+i).value,isCard=choice==='Maquininha';
-  return {metodo:isCard?el('cartao'+i).value:choice==='Pix'?'Pix':'Dinheiro',conta:paymentAccount(choice),valor:round2(num('recebido'+i)),taxa:isCard?round2(num('taxa'+i)):0,...(isCard?{canal:el('canal'+i).value,taxaPercentual:cardRate(i),taxaAutomatica:!el('taxa'+i).dataset.userEdited}: {})};
+  return {metodo:isCard?el('cartao'+i).value:choice==='Pix'?'Pix':'Dinheiro',conta:paymentAccount(choice),valor:round2(receivedAmount(i)),taxa:isCard?round2(num('taxa'+i)):0,...(isCard?{canal:el('canal'+i).value,taxaPercentual:cardRate(i),taxaAutomatica:!el('taxa'+i).dataset.userEdited}: {})};
 }
 function updatePaymentFields(i){
   const choice=el('metodo'+i).value;
@@ -464,7 +471,7 @@ function updateSecondPaymentLayout(){
 function fillRemainderIfCoins(){
   if(el('metodo1').value!=='Moeda'||!el('pagamentoMisto').checked||el('recebido2').dataset.userEdited)return;
   const total=saleTotal();
-  const remaining=Math.max(0,round2(total-num('recebido1')));
+  const remaining=Math.max(0,round2(total-receivedAmount(1)));
   el('recebido2').value=total>0?remaining.toFixed(2):'';
 }
 function syncTrocoButtons(){
@@ -511,14 +518,15 @@ function updateSalePreview(autofill=false){
   const total=invalid?0:sum(items.map(i=>i.total));
   el('totalVenda').textContent=money(total);
   el('vendaBox').classList.toggle('abr-multi-item',items.length>1);
-  el('pagamentoVenda').classList.toggle('abr-has-troco',!el('fiadoVenda').checked&&sum([num('recebido1'),el('pagamentoMisto').checked?num('recebido2'):0])-total>0.005);
-  if(autofill&&!el('recebido1').dataset.userEdited&&!el('fiadoVenda').checked)el('recebido1').value=total?total.toFixed(2):'';
+  el('pagamentoVenda').classList.toggle('abr-has-troco',!el('fiadoVenda').checked&&sum([receivedAmount(1),el('pagamentoMisto').checked?num('recebido2'):0])-total>0.005);
+  
   fillRemainderIfCoins();
   syncCardFee(1);syncCardFee(2);
-  const bruto=el('fiadoVenda').checked?0:sum([num('recebido1'),el('pagamentoMisto').checked?num('recebido2'):0]);
+  const bruto=el('fiadoVenda').checked?0:sum([receivedAmount(1),el('pagamentoMisto').checked?num('recebido2'):0]);
   const troco=Math.max(0,round2(bruto-total));const falta=Math.max(0,round2(total-bruto));
   el('trocoPrevisto').textContent=money(total?troco:0);
   const split=showTrocoSplit(troco);
+  const live=el('abr-live-change');if(live){const b=balance();if(!el('fiadoVenda').checked)for(const p of [paymentEntry(1),...(el('pagamentoMisto').checked?[paymentEntry(2)]:[])])b[p.conta]=round2((b[p.conta]||0)+p.valor-p.taxa);live.classList.toggle('hidden',troco<=0);live.innerHTML=['Espécie cédulas','Espécie moedas','Pix'].map(c=>`<div><small>${esc(supplierAccountLabel(c))}</small><b>${money(b[c]||0)}</b></div>`).join('');}
   // A previsão informa apenas o troco entregue agora; a reserva não sai fisicamente do caixa.
   const pendenteInformado=el('abr-pending-toggle')?.checked?Math.max(0,round2(num('abr-pending-new'))):0;
   const pendenteValido=pendenteInformado<=troco+.005;
@@ -888,7 +896,7 @@ function bind(){
     }else{
       el('pagamentoMisto').checked=false;el('recebido2').value='';
       delete el('recebido1').dataset.userEdited;delete el('recebido2').dataset.userEdited;
-      el('recebido1').value=saleTotal()>0?saleTotal().toFixed(2):'';
+      el('recebido1').value='';
     }
     updateSecondPaymentLayout();updateSalePreview();
   };
@@ -896,7 +904,7 @@ function bind(){
   for(const i of [1,2]){el('cartao'+i).onchange=()=>{delete el('taxa'+i).dataset.userEdited;syncCardButtons(i);updateSalePreview()};el('canal'+i).onchange=()=>{delete el('taxa'+i).dataset.userEdited;syncCardButtons(i);updateSalePreview()}}
   updateSecondPaymentLayout();
   for(const id of ['qtdCompra','custoCompra','precoVendaCompra','descontoCompra','produtoCompra'])el(id).addEventListener('input',updatePurchasePreview);
-  el('form').onsubmit=submitForm;
+  el('form').onsubmit=submitForm;el('abr-batch').onclick=batchSettlement;
   el('exportar').onclick=exportJSON;el('csv').onclick=exportCSV;
   el('importar').onclick=()=>el('arquivo').click();el('arquivo').onchange=importJSON;
   toggleFormType();updateSalePreview();updatePurchasePreview();
