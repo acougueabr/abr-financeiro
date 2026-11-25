@@ -50,7 +50,7 @@
   function availableBalances(){const b=balance();b['Troco reservado ao cliente']=round2(-trocoReservado());return b}
   function dashboardFinancial(){
     const regs=state.registros;
-    const available= sum(Object.values(availableBalances()));
+    const available= round2(sum(Object.values(availableBalances()))-creditReserved());
     const debt= sum(regs.filter(r=>isDebt(r)&&restante(r)>0).map(restante));
     const receivable= sum(regs.filter(r=>isReceivable(r)&&restante(r)>0).map(restante));
     const revenue= sum(regs.filter(r=>r.tipo==='venda'&&!r.semFaturamento).map(r=>r.valor));

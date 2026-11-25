@@ -72,6 +72,9 @@ function initialize(){
 }
 const n=r=>round2(r.valor);
 const paid=id=>sum(state.registros.filter(r=>['pagamento','recebimento'].includes(r.tipo)&&r.vinculo===id).map(n));
+const creditKey=s=>String(s||'').trim().toLocaleLowerCase('pt-BR');
+function creditBalance(name, date='9999-12-31'){return round2(sum(state.registros.filter(r=>creditKey(r.pessoa)===creditKey(name)&&r.data<=date).map(r=>r.tipo==='credito_cliente'?n(r):r.tipo==='venda'?-Number(r.creditoCliente||0):0)));}
+function creditReserved(){return round2(sum(state.registros.map(r=>r.tipo==='credito_cliente'?n(r):r.tipo==='venda'?-Number(r.creditoCliente||0):0)));}
 const initialSaleReceived=r=>Array.isArray(r.recebimentos)?round2(sum(r.recebimentos.map(p=>p.valor))-(Number(r.troco?.valor||0)+Number(r.trocoPendente||0))):0;
 const restante=r=>Math.max(0,round2(n(r)-paid(r.id)-(r.tipo==='venda'?(r.compensacaoFornecedor?n(r):initialSaleReceived(r)):0)));
 // Troco prometido ao cliente: reserva no disponível, sem saída física até a entrega.
@@ -108,7 +111,7 @@ function balance(){
         for(const p of r.recebimentos)delta(p.conta,round2(n(p)-Number(p.taxa||0)));
         for(const parte of trocoPartes(r.troco))delta(parte.conta,-parte.valor);
       }else if(r.status==='quitado')delta(r.conta,n(r));
-    }else if(r.tipo==='recebimento')delta(r.conta,n(r));
+    }else if(r.tipo==='recebimento'||r.tipo==='credito_cliente')delta(r.conta,n(r));
     else if(r.tipo==='pagamento'||r.tipo==='emprestimo'||(['compra','despesa','investimento'].includes(r.tipo)&&r.status==='quitado'))delta(r.conta,-n(r));
     else if(r.tipo==='ajuste')delta(r.conta,n(r));
     else if(r.tipo==='transferencia'){delta(r.conta,-n(r));delta(r.destino,n(r));}
@@ -665,6 +668,7 @@ function submitForm(e){
   if(tipo==='venda'){
     const itens=getItems();if(!itens.length||itens.some(i=>!Number.isFinite(i.total)||i.total<=0)){alert('Informe um valor cobrado maior que zero em cada mercadoria.');return}
     const total=sum(itens.map(i=>i.total));if(total<=0){alert('O valor da venda precisa ser maior que zero.');return}
+    if(el('abr701-use-credit')?.checked){const cliente=el('clienteVenda').value.trim();if(!cliente||total>creditBalance(cliente,data)+.001||total>creditBalance(cliente)+.001){alert('Informe o cliente e confira o saldo de crédito.');return;}return addRecord({...base,descricao:itens.map(i=>i.produto+(i.detalhe?' — '+i.detalhe:'')).join(' + '),pessoa:cliente,itens,valor:total,recebimentos:[],creditoCliente:total,status:'quitado',observacao:el('obsVenda').value.trim()});}
     const fiado=el('fiadoVenda').checked;
     const entradas=fiado?[]:[paymentEntry(1),...(el('pagamentoMisto').checked?[paymentEntry(2)]:[])].filter(p=>p.valor>0);
     const bruto=sum(entradas.map(p=>p.valor)),trocoValor=Math.max(0,round2(bruto-total));
@@ -716,6 +720,7 @@ function submitForm(e){
 function removeTransaction(id){
   const r=state.registros.find(x=>x.id===id);
   if(!r||r.legacy){alert('Os registros consolidados iniciais são protegidos.');return}
+  if(r.tipo==='credito_cliente'&&creditBalance(r.pessoa)<n(r)-.001){alert('Este crédito já foi utilizado. Exclua primeiro as vendas vinculadas ao crédito.');return;}
   const children=state.registros.filter(x=>x.vinculo===id);
   if(children.length){alert(`Este registro possui ${children.length} pagamento(s)/recebimento(s) vinculados. Exclua primeiro essas baixas para não deixar saldo incorreto.`);return}
   const descricao=String(r.descricao||r.tipo);
