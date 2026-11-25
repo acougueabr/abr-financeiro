@@ -1,0 +1,4 @@
+ABR Financeiro 7.0 — prévia incremental
+Inclui apresentação isolada, atalhos de lançamento e análise de receita bovina entre compras.
+Não é a reorganização completa aprovada. Estoque, salários e navegação completa ainda não foram implementados.
+Teste em cópia do repositório antes de publicar. Não limpe dados locais. Backup não incluído no ZIP. Configuração e integração originais mantidas.
