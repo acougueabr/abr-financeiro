@@ -111,6 +111,7 @@ function balance(){
     }else if(r.tipo==='recebimento')delta(r.conta,n(r));
     else if(r.tipo==='pagamento'||r.tipo==='emprestimo'||(['compra','despesa','investimento'].includes(r.tipo)&&r.status==='quitado'))delta(r.conta,-n(r));
     else if(r.tipo==='ajuste')delta(r.conta,n(r));
+    else if(r.tipo==='transferencia'){delta(r.conta,-n(r));delta(r.destino,n(r));}
   }
   return b;
 }
@@ -142,7 +143,7 @@ function render(){
   el('cenarios').innerHTML=[['SOMENTE O CAIXA',caixa],['CAIXA + FIADOS',caixa+fiados],['CAIXA + TODOS A RECEBER',caixa+receber]].map(([label,val],i)=>`<div class="scenario"><small>${i+1} • ${label}</small><strong>${money(val)}</strong><small>${val>=pagar?'SOBRAM':'FALTAM'}</small><div class="${val>=pagar?'greenText':'red'}">${money(Math.abs(pagar-val))}</div></div>`).join('');
   el('resumo').innerHTML=`<span class="orange">RESUMO DA DECISÃO</span><div style="margin-top:7px">${caixa+receber<pagar?`Mesmo após receber todos os ${money(receber)}, ainda faltarão ${money(pagar-caixa-receber)} para quitar as pendências.`:`Se todos pagarem, será possível quitar as pendências e restarão ${money(caixa+receber-pagar)}.`}</div>`;
   const salesByProduct=new Map();const stock=new Map();
-  const addStock=(p,u,q)=>{const key=p+'|'+u;stock.set(key,round2((stock.get(key)||0)+q))};
+  const addStock=(p,u,q)=>{const key=p+'|'+u;stock.set(key,Math.round(((stock.get(key)||0)+q)*1000)/1000)};
   for(const r of regs){
     if(r.tipo==='compra'&&r.produto&&r.quantidade)addStock(r.produto,r.unidade||'kg',Number(r.quantidade));
     if(r.tipo==='estoque'&&r.produto&&r.quantidade)addStock(r.produto,r.unidade||'kg',Number(r.quantidade));
@@ -461,7 +462,7 @@ function addItem(){
   itemSequence++;
   const id='item'+itemSequence;
   const box=document.createElement('div');box.className='item abr-item-rapido';box.dataset.itemId=id;
-  box.innerHTML=`<div class="abr-item-fields"><div><label>Valor da venda (R$)</label><input class="itemValor" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="0,00" aria-label="Valor cobrado"></div><div><label>Mercadoria</label><select class="itemProduto">${productOptions()}</select></div></div><div class="abr-item-foot"><details class="abr-item-opcional"><summary>Corte / detalhe (opcional)</summary><input class="itemDetalhe" placeholder="Ex.: Picanha, coxa, linguiça" aria-label="Detalhe da mercadoria"></details><button type="button" class="secondary smallBtn removeItem">Remover</button></div>`;
+  box.innerHTML=`<div class="abr-item-fields"><div><label>Valor da venda (R$)</label><input class="itemValor" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="0,00" aria-label="Valor cobrado"></div><div><label>Mercadoria</label><select class="itemProduto">${productOptions()}</select></div></div><div class="abr-item-foot"><details class="abr-item-opcional"><summary>Corte / detalhe (opcional)</summary><input class="itemDetalhe" placeholder="Ex.: Picanha, coxa, linguiça" aria-label="Detalhe da mercadoria"></details><label>Peso vendido (kg, opcional)<input class="itemPeso" type="number" min="0.001" step="0.001" inputmode="decimal" placeholder="kg"></label><button type="button" class="secondary smallBtn removeItem">Remover</button></div>`;
   el('itensVenda').appendChild(box);
   if(el('itensVenda').children.length===1)box.querySelector('.removeItem').classList.add('hidden');
   return box;
@@ -471,7 +472,7 @@ function getItems(){
     const get=cls=>box.querySelector(cls);
     const valorRaw=get('.itemValor').value;
     const total=valorRaw===''?NaN:round2(Number(valorRaw));
-    return {produto:get('.itemProduto').value,detalhe:get('.itemDetalhe').value.trim(),unidade:'valor',quantidade:null,precoVenda:null,total};
+    return {produto:get('.itemProduto').value,detalhe:get('.itemDetalhe').value.trim(),unidade:get('.itemPeso')?.value>0?'kg':'valor',quantidade:get('.itemPeso')?.value>0?Number(get('.itemPeso').value):null,precoVenda:null,total};
   });
 }
 function saleTotal(){return sum(getItems().map(i=>i.total))}
@@ -688,6 +689,7 @@ function submitForm(e){
     const detalhe=el('detalheCompra').value.trim();
     return addRecord({...base,produto,unidade:el('unidadeCompra').value,quantidade,preco,precoVendaRef:num('precoVendaCompra')||null,desconto,valor,descricao:produto+(detalhe?' — '+detalhe:''),pessoa:el('fornecedorCompra').value.trim(),status:el('statusCompra').value,conta:el('contaCompra').value});
   }
+  if(tipo==='transferencia'){const valor=num('valorGeral'),conta=el('contaGeral').value,destino=el('abr7-destino').value;if(!Number.isFinite(valor)||valor<=0||conta===destino||valor>(Number(balance()[conta])||0)+.001){alert('Confira valor, contas diferentes e saldo de origem.');return;}return addRecord({...base,descricao:'Transferência — '+conta+' → '+destino,valor:round2(valor),conta,destino,status:'quitado'});}
   if(tipo==='estoque'){
     const quantidade=num('qtdEstoque'),motivo=el('motivoEstoque').value.trim();
     if(!quantidade||!motivo){alert('Informe quantidade diferente de zero e motivo do ajuste.');return}

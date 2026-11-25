@@ -1,4 +1,6 @@
-ABR Financeiro 7.0 — prévia incremental
-Inclui apresentação isolada, atalhos de lançamento e análise de receita bovina entre compras.
-Não é a reorganização completa aprovada. Estoque, salários e navegação completa ainda não foram implementados.
-Teste em cópia do repositório antes de publicar. Não limpe dados locais. Backup não incluído no ZIP. Configuração e integração originais mantidas.
+ABR Financeiro 7.0 — versão de teste visual
+Base: 7.0 prévia. Mantém arquivos de configuração e mecanismo de armazenamento.
+Novidades: estilo mais plano, teclado numérico, peso opcional nas vendas, categorias adicionais, transferência e conferência física por produto.
+Não publicar backup JSON. Antes de substituir arquivos, exportar backup e guardar a versão anterior.
+Validação: sintaxe JavaScript. Não testado em navegador/iPhone ou Supabase real. Conferir saldos e lançamentos em ambiente de teste antes de usar em produção.
+Pendências: conferência peça por peça, categorias criadas pelo usuário, histórico agrupado, filtros de fornecedores e revisão integral dos fluxos de transferência/relatórios e sincronização. Recuperação por receita entre compras, não por lote físico.
